@@ -321,6 +321,176 @@ export function createDashboardServer(
     }
   });
 
+  // Overlap / intersection analysis API
+  app.get("/api/overlap", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      // Get all user-category-linkCount triples
+      const catRes = await session.run(`
+        MATCH (u:User)<-[:SHARED_BY]-(l:Link)-[:CATEGORIZED_IN]->(c:Category)
+        RETURN u.discordId AS userId, u.displayName AS displayName,
+               c.name AS category, count(l) AS linkCount
+        ORDER BY c.name, linkCount DESC
+      `);
+
+      // Get all users
+      const userRes = await session.run(`
+        MATCH (u:User)
+        OPTIONAL MATCH (u)<-[:SHARED_BY]-(l:Link)
+        RETURN u.discordId AS discordId, u.displayName AS displayName, count(l) AS linkCount
+        ORDER BY linkCount DESC
+      `);
+
+      // Get per-user content type breakdown
+      const typeRes = await session.run(`
+        MATCH (u:User)<-[:SHARED_BY]-(l:Link)
+        WHERE l.contentType IS NOT NULL
+        RETURN u.discordId AS userId, l.contentType AS type, count(l) AS count
+        ORDER BY userId, count DESC
+      `);
+
+      // Get per-user score averages
+      const scoreRes = await session.run(`
+        MATCH (u:User)<-[:SHARED_BY]-(l:Link)
+        WHERE l.forgeScore IS NOT NULL
+        RETURN u.discordId AS userId,
+               avg(l.forgeScore) AS avgScore,
+               max(l.forgeScore) AS maxScore,
+               min(l.forgeScore) AS minScore
+      `);
+
+      // Get per-user tag overlap (top tags per user)
+      const tagRes = await session.run(`
+        MATCH (u:User)<-[:SHARED_BY]-(l:Link)-[:TAGGED_WITH]->(t:Tag)
+        RETURN u.discordId AS userId, t.name AS tag, count(l) AS count
+        ORDER BY userId, count DESC
+      `);
+
+      // Get per-user tool overlap
+      const toolRes = await session.run(`
+        MATCH (u:User)<-[:SHARED_BY]-(l:Link)-[:MENTIONS_TOOL]->(t:Tool)
+        RETURN u.discordId AS userId, t.name AS tool, count(l) AS count
+        ORDER BY userId, count DESC
+      `);
+
+      const users = userRes.records.map((r) => ({
+        discordId: r.get("discordId") as string,
+        displayName: r.get("displayName") as string,
+        linkCount: toNum(r.get("linkCount")),
+      }));
+
+      // Build category → { userId: linkCount } map
+      const categoryMap: Record<string, Record<string, number>> = {};
+      const userCategories: Record<string, Set<string>> = {};
+
+      for (const r of catRes.records) {
+        const userId = r.get("userId") as string;
+        const cat = r.get("category") as string;
+        const count = toNum(r.get("linkCount"));
+
+        if (!categoryMap[cat]) categoryMap[cat] = {};
+        categoryMap[cat][userId] = count;
+
+        if (!userCategories[userId]) userCategories[userId] = new Set();
+        userCategories[userId].add(cat);
+      }
+
+      // Build categories list with overlap info
+      const categories = Object.entries(categoryMap)
+        .map(([name, userCounts]) => ({
+          name,
+          users: userCounts,
+          sharedByCount: Object.keys(userCounts).length,
+          totalLinks: Object.values(userCounts).reduce((a, b) => a + b, 0),
+        }))
+        .sort((a, b) => b.sharedByCount - a.sharedByCount || b.totalLinks - a.totalLinks);
+
+      // Build pairwise similarity matrix (Jaccard index on categories)
+      const userIds = users.map((u) => u.discordId);
+      const pairwise: Array<{
+        userA: string;
+        userB: string;
+        sharedCategories: number;
+        jaccard: number;
+        onlyA: number;
+        onlyB: number;
+        overlap: string[];
+      }> = [];
+
+      for (let i = 0; i < userIds.length; i++) {
+        for (let j = i + 1; j < userIds.length; j++) {
+          const idA = userIds[i]!;
+          const idB = userIds[j]!;
+          const a = userCategories[idA] || new Set<string>();
+          const b = userCategories[idB] || new Set<string>();
+          const shared = [...a].filter((c) => b.has(c));
+          const union = new Set([...a, ...b]);
+          pairwise.push({
+            userA: idA,
+            userB: idB,
+            sharedCategories: shared.length,
+            jaccard: union.size > 0 ? Math.round((shared.length / union.size) * 100) / 100 : 0,
+            onlyA: [...a].filter((c) => !b.has(c)).length,
+            onlyB: [...b].filter((c) => !a.has(c)).length,
+            overlap: shared.sort(),
+          });
+        }
+      }
+
+      // Per-user stats
+      const userStats: Record<string, {
+        totalCategories: number;
+        uniqueCategories: number;
+        avgScore: number;
+        maxScore: number;
+        topTypes: Array<{ type: string; count: number }>;
+        topTags: Array<{ tag: string; count: number }>;
+        topTools: Array<{ tool: string; count: number }>;
+      }> = {};
+
+      for (const uid of userIds) {
+        const cats = userCategories[uid] || new Set<string>();
+        const otherUserCats = new Set<string>();
+        for (const other of userIds) {
+          if (other !== uid && userCategories[other]) {
+            for (const c of userCategories[other]) otherUserCats.add(c);
+          }
+        }
+        const unique = [...cats].filter((c) => !otherUserCats.has(c));
+
+        const scoreRec = scoreRes.records.find((r) => r.get("userId") === uid);
+        const types = typeRes.records
+          .filter((r) => r.get("userId") === uid)
+          .map((r) => ({ type: r.get("type") as string, count: toNum(r.get("count")) }));
+        const tags = tagRes.records
+          .filter((r) => r.get("userId") === uid)
+          .slice(0, 10)
+          .map((r) => ({ tag: r.get("tag") as string, count: toNum(r.get("count")) }));
+        const tools = toolRes.records
+          .filter((r) => r.get("userId") === uid)
+          .slice(0, 10)
+          .map((r) => ({ tool: r.get("tool") as string, count: toNum(r.get("count")) }));
+
+        userStats[uid] = {
+          totalCategories: cats.size,
+          uniqueCategories: unique.length,
+          avgScore: scoreRec ? Math.round(toNum(scoreRec.get("avgScore")) * 100) / 100 : 0,
+          maxScore: scoreRec ? Math.round(toNum(scoreRec.get("maxScore")) * 100) / 100 : 0,
+          topTypes: types,
+          topTags: tags,
+          topTools: tools,
+        };
+      }
+
+      res.json({ users, categories, pairwise, userStats });
+    } catch (err) {
+      logger.error({ err }, "Failed to compute overlap analysis");
+      res.status(500).json({ error: "Failed to compute overlap analysis" });
+    } finally {
+      await session.close();
+    }
+  });
+
   // Chart image endpoints
   app.get("/api/charts/scores", async (_req, res) => {
     const session = neo4jDriver.session();

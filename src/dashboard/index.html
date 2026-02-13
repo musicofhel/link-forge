@@ -164,6 +164,143 @@
     .badge-reference { background: #99aab533; color: #99aab5; }
     .badge-commentary { background: #ed424533; color: #ed4245; }
 
+    /* Overlap analysis section */
+    .overlap-section { display: none; }
+    .overlap-section.visible { display: contents; }
+
+    .overlap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .user-profile-card {
+      background: #383a40;
+      border-radius: 10px;
+      padding: 16px;
+      border-left: 3px solid #5865f2;
+    }
+    .user-profile-card .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .user-profile-card .profile-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #5865f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 14px;
+    }
+    .user-profile-card .profile-avatar img { width: 100%; height: 100%; border-radius: 50%; }
+    .user-profile-card .profile-name { font-weight: 600; color: #fff; font-size: 15px; }
+    .user-profile-card .profile-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 12px;
+      color: #99aab5;
+    }
+    .user-profile-card .profile-stats .val { color: #5865f2; font-weight: 600; font-size: 14px; }
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .tag-pill {
+      background: #2b2d3180;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      color: #99aab5;
+    }
+    .tag-pill .tag-count { color: #5865f2; margin-left: 3px; }
+
+    /* Heatmap */
+    .heatmap-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .heatmap-table { border-collapse: collapse; }
+    .heatmap-table th {
+      font-size: 12px;
+      color: #99aab5;
+      padding: 6px 10px;
+      font-weight: 500;
+      border: none;
+      cursor: default;
+    }
+    .heatmap-table th:hover { color: #99aab5; }
+    .heatmap-table td {
+      text-align: center;
+      padding: 0;
+      border: 2px solid #1e1f22;
+    }
+    .heatmap-cell {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      cursor: default;
+      transition: transform 0.15s;
+    }
+    .heatmap-cell:hover { transform: scale(1.08); }
+    .heatmap-cell .hm-val { font-size: 18px; font-weight: 700; color: #fff; }
+    .heatmap-cell .hm-label { font-size: 9px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+    .heatmap-cell.self { background: #383a40; }
+    .heatmap-cell.self .hm-val { color: #99aab5; }
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #99aab5;
+      margin-top: 4px;
+    }
+    .heatmap-legend .lg-bar {
+      width: 120px;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #383a40, #5865f2);
+    }
+
+    /* Shared categories list */
+    .shared-cat-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #3f414730;
+      font-size: 13px;
+    }
+    .shared-cat-row:last-child { border-bottom: none; }
+    .shared-cat-name { flex: 1; color: #dbdee1; }
+    .shared-cat-users { display: flex; gap: 4px; }
+    .shared-cat-pip {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .shared-cat-count {
+      font-size: 11px;
+      color: #99aab5;
+      margin-left: 8px;
+      min-width: 30px;
+      text-align: right;
+    }
+
     /* Tooltip */
     .tooltip {
       position: absolute; background: #383a40; border: 1px solid #4f545c;
@@ -202,6 +339,22 @@
       <h2>Content Types</h2>
       <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
     </div>
+    <!-- Overlap analysis (All tab only) -->
+    <div class="overlap-section visible" id="overlap-section">
+      <div class="card full">
+        <h2>User Profiles</h2>
+        <div class="overlap-grid" id="user-profiles"></div>
+      </div>
+      <div class="card">
+        <h2>Category Overlap Heatmap</h2>
+        <div class="heatmap-container" id="heatmap"></div>
+      </div>
+      <div class="card">
+        <h2>Shared Categories</h2>
+        <div style="max-height:360px;overflow-y:auto" id="shared-categories"></div>
+      </div>
+    </div>
+
     <div class="card full graph-container">
       <h2>Knowledge Graph</h2>
       <div class="view-tabs">
@@ -318,6 +471,7 @@ async function loadUsers() {
     loadStats();
     loadLinks();
     loadGraph();
+    loadOverlap();
   });
 }
 
@@ -543,11 +697,146 @@ async function loadGraph() {
   });
 }
 
+// --- Overlap Analysis ---
+async function loadOverlap() {
+  const section = document.getElementById('overlap-section');
+  if (currentUser) {
+    section.classList.remove('visible');
+    return;
+  }
+  section.classList.add('visible');
+
+  const res = await fetch('/api/overlap');
+  const data = await res.json();
+
+  renderUserProfiles(data);
+  renderHeatmap(data);
+  renderSharedCategories(data);
+}
+
+function renderUserProfiles(data) {
+  const container = document.getElementById('user-profiles');
+  container.innerHTML = data.users.map((u, i) => {
+    const stats = data.userStats[u.discordId] || {};
+    const color = USER_COLORS[i % USER_COLORS.length];
+    const typeBadges = (stats.topTypes || []).map(t =>
+      `<span class="badge badge-${t.type}">${t.type} ${t.count}</span>`
+    ).join(' ');
+    const tagPills = (stats.topTags || []).slice(0, 8).map(t =>
+      `<span class="tag-pill">${t.tag}<span class="tag-count">${t.count}</span></span>`
+    ).join('');
+    const toolPills = (stats.topTools || []).slice(0, 6).map(t =>
+      `<span class="tag-pill">${t.tool}<span class="tag-count">${t.count}</span></span>`
+    ).join('');
+
+    return `
+      <div class="user-profile-card" style="border-left-color:${color}">
+        <div class="profile-header">
+          <div class="profile-avatar" style="background:${color}">${u.displayName.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="profile-name">${u.displayName}</div>
+            <div style="font-size:12px;color:#99aab5">${u.linkCount} links</div>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div><span class="val">${stats.totalCategories || 0}</span> categories</div>
+          <div><span class="val">${stats.uniqueCategories || 0}</span> unique</div>
+          <div><span class="val">${stats.avgScore || 0}</span> avg score</div>
+          <div><span class="val">${stats.maxScore || 0}</span> max score</div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:#99aab5">Types</div>
+        <div style="margin-top:4px">${typeBadges}</div>
+        ${tagPills ? `<div style="margin-top:8px;font-size:12px;color:#99aab5">Top Tags</div><div class="tag-cloud">${tagPills}</div>` : ''}
+        ${toolPills ? `<div style="margin-top:8px;font-size:12px;color:#99aab5">Top Tools</div><div class="tag-cloud">${toolPills}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderHeatmap(data) {
+  const container = document.getElementById('heatmap');
+  const users = data.users;
+
+  if (users.length < 2) {
+    container.innerHTML = '<div style="color:#99aab5;font-size:13px;padding:20px">Need 2+ users for overlap heatmap</div>';
+    return;
+  }
+
+  // Build lookup for pairwise data
+  const pairKey = (a, b) => [a, b].sort().join('|');
+  const pairMap = {};
+  for (const p of data.pairwise) {
+    pairMap[pairKey(p.userA, p.userB)] = p;
+  }
+
+  // Find max shared for color scaling
+  const maxShared = Math.max(1, ...data.pairwise.map(p => p.sharedCategories));
+
+  let html = '<table class="heatmap-table"><thead><tr><th></th>';
+  for (const u of users) {
+    html += `<th>${u.displayName}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (let i = 0; i < users.length; i++) {
+    html += `<tr><th>${users[i].displayName}</th>`;
+    for (let j = 0; j < users.length; j++) {
+      if (i === j) {
+        const stats = data.userStats[users[i].discordId] || {};
+        html += `<td><div class="heatmap-cell self"><span class="hm-val">${stats.totalCategories || 0}</span><span class="hm-label">total</span></div></td>`;
+      } else {
+        const pair = pairMap[pairKey(users[i].discordId, users[j].discordId)];
+        const shared = pair ? pair.sharedCategories : 0;
+        const jaccard = pair ? pair.jaccard : 0;
+        const intensity = shared / maxShared;
+        const bg = `rgba(88, 101, 242, ${0.15 + intensity * 0.75})`;
+        html += `<td><div class="heatmap-cell" style="background:${bg}" title="${shared} shared categories (Jaccard: ${jaccard})"><span class="hm-val">${shared}</span><span class="hm-label">J=${jaccard}</span></div></td>`;
+      }
+    }
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  html += '<div class="heatmap-legend"><span>Low overlap</span><div class="lg-bar"></div><span>High overlap</span></div>';
+  container.innerHTML = html;
+}
+
+function renderSharedCategories(data) {
+  const container = document.getElementById('shared-categories');
+  const users = data.users;
+
+  // Only show categories shared by 2+ users
+  const shared = data.categories.filter(c => c.sharedByCount >= 2);
+
+  if (shared.length === 0) {
+    container.innerHTML = '<div style="color:#99aab5;font-size:13px;padding:10px">No shared categories yet</div>';
+    return;
+  }
+
+  container.innerHTML = shared.map(cat => {
+    const pips = users.map((u, i) => {
+      const count = cat.users[u.discordId];
+      if (!count) return '';
+      const color = USER_COLORS[i % USER_COLORS.length];
+      return `<div class="shared-cat-pip" style="background:${color}" title="${u.displayName}: ${count} links">${count}</div>`;
+    }).join('');
+
+    return `
+      <div class="shared-cat-row">
+        <span class="shared-cat-name">${cat.name}</span>
+        <div class="shared-cat-users">${pips}</div>
+        <span class="shared-cat-count">${cat.totalLinks} total</span>
+      </div>
+    `;
+  }).join('');
+}
+
 // Boot
 loadUsers().then(() => {
   loadStats();
   loadLinks();
   loadGraph();
+  loadOverlap();
 });
 </script>
 </body>
