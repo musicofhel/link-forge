@@ -45,32 +45,42 @@ Rules:
 - technologies are programming languages, frameworks, or platforms mentioned
 - quality: high = original research/tool/tutorial, medium = blog post/discussion, low = aggregator/list
 
-forge_score — probability that reading this leads to a concrete building action (install, adopt, configure):
-  0.85-1.0 = The artifact itself — a repo, package, or tool you can install/clone/use directly
-  0.65-0.84 = Rich guide or tutorial with transferable code or patterns
-  0.45-0.64 = Substantive analysis, comparison, or workflow pattern description
-  0.25-0.44 = Thin pointer — a tweet or comment linking to something useful elsewhere
-  0.05-0.24 = Pure commentary, opinion, or engagement with no direct build value
+CRITICAL — Score the PAGE YOU ARE READING, not the thing it mentions:
+- A tweet/post ABOUT a tool is NOT the tool. It is commentary (content_type: "commentary").
+- A tweet that says "check out this repo: github.com/foo/bar" scores 0.25-0.44, NOT 0.85+.
+- Only score 0.85+ if the URL IS the repo/package/docs page itself.
+- An awesome-list or aggregator page is a reference (0.30-0.45), not the tools it lists.
+- A GitHub repo page IS the artifact → score as tool (0.85+).
+- A blog post with install commands and code snippets → tutorial/guide (0.65-0.84).
+- A tweet with no code, just opinions → commentary (0.05-0.44).
 
-content_type — what kind of resource this is:
-  tool = installable software, CLI, library, or package
+forge_score — probability that reading THIS PAGE leads to a concrete building action (install, adopt, configure):
+  0.85-1.0 = The artifact itself — a repo, package, docs, or tool you can install/clone/use directly from THIS page
+  0.65-0.84 = Rich guide or tutorial with transferable code or patterns you can copy/adapt
+  0.45-0.64 = Substantive analysis, comparison, or workflow pattern description with enough detail to act on
+  0.25-0.44 = Thin pointer — a tweet, comment, or aggregator linking to something useful elsewhere
+  0.05-0.24 = Pure commentary, opinion, or engagement with no direct build value
+  0.0 = Completely off-topic (not related to software, AI, or dev tooling at all)
+
+content_type — what kind of resource THIS PAGE is (not what it discusses):
+  tool = installable software, CLI, library, or package (the repo/homepage itself)
   tutorial = step-by-step guide with code examples
-  pattern = reusable architectural or workflow pattern
+  pattern = reusable architectural or workflow pattern with enough detail to implement
   analysis = comparison, benchmark, or deep-dive evaluation
-  reference = documentation, spec, or API reference
-  commentary = opinion, tweet thread, or discussion
+  reference = documentation, spec, API reference, or curated list
+  commentary = opinion, tweet thread, social media post, or discussion
 
 purpose — one sentence describing what problem this resource solves (e.g., "reduce LLM API costs via model routing")
 
-integration_type — how you would use this resource:
-  cli = command-line tool to install and run
-  library = importable package/module
-  api = hosted API endpoint
+integration_type — how you would use THIS PAGE (not the thing it mentions):
+  cli = command-line tool to install and run (only if this page IS the tool)
+  library = importable package/module (only if this page IS the library)
+  api = hosted API endpoint (only if this page IS the API docs)
   skill = Claude Code skill or prompt pattern
-  saas = hosted service with web UI
+  saas = hosted service with web UI (only if this page IS the service)
   pattern = architectural pattern to adapt
   guide = instructions to follow
-  reference = information to consult`;
+  reference = information to consult (use this for tweets/posts about tools)`;
 
 export async function categorizeWithClaude(
   title: string,

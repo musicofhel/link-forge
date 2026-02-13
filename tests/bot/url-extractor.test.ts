@@ -122,4 +122,19 @@ And the actual article: https://blog.example.com/post`;
     const result = extractUrls("https://giphy.com/gifs/abc123");
     expect(result).toHaveLength(0);
   });
+
+  it("should filter phantom .md URLs from tweet content", () => {
+    const result = extractUrls("Define your goals in a http://goals.md file");
+    expect(result).toHaveLength(0);
+  });
+
+  it("should filter phantom .yaml and .json URLs", () => {
+    const result = extractUrls("edit your http://config.yaml and http://package.json");
+    expect(result).toHaveLength(0);
+  });
+
+  it("should keep real .md-hosting domains like github.com", () => {
+    const result = extractUrls("https://github.com/user/repo/blob/main/README.md");
+    expect(result).toHaveLength(1);
+  });
 });

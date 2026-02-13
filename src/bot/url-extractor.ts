@@ -14,12 +14,21 @@ export interface ExtractedUrl {
   comment: string;
 }
 
-function isCdnUrl(url: string): boolean {
+const PHANTOM_EXTENSIONS = new Set([".md", ".txt", ".yaml", ".yml", ".json", ".toml"]);
+
+function shouldSkip(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return CDN_HOSTS.has(parsed.hostname);
-  } catch {
+    if (CDN_HOSTS.has(parsed.hostname)) return true;
+    // Skip bare filenames misinterpreted as URLs (e.g., "MEMORY.md" → "http://memory.md")
+    const host = parsed.hostname.toLowerCase();
+    if (!host.includes(".")) return true;
+    for (const ext of PHANTOM_EXTENSIONS) {
+      if (host.endsWith(ext)) return true;
+    }
     return false;
+  } catch {
+    return true;
   }
 }
 
@@ -38,7 +47,7 @@ export function extractUrls(text: string): ExtractedUrl[] {
     if (!matches) continue;
 
     for (const url of matches) {
-      if (isCdnUrl(url)) continue;
+      if (shouldSkip(url)) continue;
 
       // Comment is the text on this line that is not the URL, trimmed
       const comment = line.replace(url, "").trim();

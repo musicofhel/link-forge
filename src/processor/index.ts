@@ -77,12 +77,22 @@ export function createProcessor(
         log,
       );
 
-      // Step 3: Generate embedding
+      // Step 3: Check minimum forge_score threshold
+      if (categorization.forge_score < 0.10) {
+        log.warn(
+          { forgeScore: categorization.forge_score, title: scraped.title },
+          "Skipping low-relevance link (forge_score < 0.10)",
+        );
+        markCompleted(queueClient.db, item.id);
+        return true;
+      }
+
+      // Step 4: Generate embedding
       log.debug("Embedding...");
       const textForEmbedding = `${scraped.title}. ${scraped.description}. ${categorization.summary}`;
       const embedding = await embeddings.embed(textForEmbedding);
 
-      // Step 4: Store in Neo4j
+      // Step 5: Store in Neo4j
       log.debug("Storing in graph...");
 
       // Create link node
@@ -166,7 +176,7 @@ export function createProcessor(
       );
 
       // Notify Discord (skip for auto-discovered links with synthetic IDs)
-      const isAutoDiscovered = item.discord_message_id.startsWith("auto:");
+      const isAutoDiscovered = item.discord_message_id.startsWith("auto:") || item.discord_message_id.startsWith("backfill:");
       if (notifier && !isAutoDiscovered) {
         await notifier.notifySuccess(item.discord_channel_id, item.discord_message_id);
       }
@@ -177,7 +187,7 @@ export function createProcessor(
       log.error({ err: errorMsg }, "Failed to process link");
       markFailed(queueClient.db, item.id, errorMsg);
 
-      const isAutoDiscovered = item.discord_message_id.startsWith("auto:");
+      const isAutoDiscovered = item.discord_message_id.startsWith("auto:") || item.discord_message_id.startsWith("backfill:");
       if (notifier && !isAutoDiscovered) {
         await notifier.notifyFailure(item.discord_channel_id, item.discord_message_id);
       }
