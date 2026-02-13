@@ -45,10 +45,26 @@ async function main() {
   const dashboard = createDashboardServer(graphClient.driver, logger);
   dashboard.start(dashboardPort);
 
-  // 6. Start Discord bot (with slash command deps)
+  // 6. Detect ngrok public URL if running
+  let dashboardUrl: string | undefined = process.env["DASHBOARD_URL"];
+  if (!dashboardUrl) {
+    try {
+      const ngrokRes = await fetch("http://localhost:4040/api/tunnels");
+      const ngrokData = await ngrokRes.json() as { tunnels: Array<{ public_url: string }> };
+      if (ngrokData.tunnels[0]) {
+        dashboardUrl = ngrokData.tunnels[0].public_url;
+        logger.info({ dashboardUrl }, "Detected ngrok tunnel");
+      }
+    } catch {
+      // ngrok not running — use localhost
+    }
+  }
+
+  // 7. Start Discord bot (with slash command deps)
   const bot = createBot(config.discord, queueClient, logger, {
     neo4jDriver: graphClient.driver,
     dashboardPort,
+    dashboardUrl,
   });
   await bot.login();
   logger.info("Discord bot connected");

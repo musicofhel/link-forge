@@ -29,6 +29,7 @@ export interface BotConfig {
 export interface SlashCommandDeps {
   neo4jDriver: Driver;
   dashboardPort: number;
+  dashboardUrl?: string; // Public URL (ngrok) — falls back to localhost
 }
 
 export function createBot(
@@ -193,7 +194,7 @@ export function createBot(
           .setTitle("Interactive Knowledge Graph")
           .setDescription(
             `View the full interactive dashboard:\n` +
-            `**http://localhost:${slashDeps.dashboardPort}/dashboard**\n\n` +
+            `**${slashDeps.dashboardUrl ?? `http://localhost:${slashDeps.dashboardPort}`}/dashboard**\n\n` +
             `${linkCount} nodes \u00b7 ${linksTo} LINKS_TO edges`,
           )
           .setColor(0x5865f2);
