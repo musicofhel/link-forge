@@ -10,49 +10,75 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1e1f22;
+      background: #1a1b1e;
       color: #dbdee1;
       min-height: 100vh;
+    }
+
+    /* Fade-in animation */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .fade-in { animation: fadeIn 0.3s ease-out both; }
+
+    /* Skeleton loading */
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #2b2d31 25%, #383a40 50%, #2b2d31 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
     }
 
     /* Tab bar */
     .tab-bar {
       display: flex;
       align-items: flex-end;
-      gap: 0;
-      padding: 0 32px;
-      background: #1e1f22;
-      border-bottom: 2px solid #3f4147;
+      gap: 2px;
+      padding: 12px 32px 0;
+      background: #1a1b1e;
       overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #383a40 transparent;
     }
     .tab {
-      padding: 10px 20px 8px;
+      padding: 10px 18px 10px;
       background: #2b2d31;
-      color: #99aab5;
-      border: 1px solid #3f4147;
+      color: #8e9297;
+      border: 1px solid transparent;
       border-bottom: none;
-      border-radius: 8px 8px 0 0;
+      border-radius: 10px 10px 0 0;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       white-space: nowrap;
-      margin-bottom: -2px;
-      transition: background 0.15s, color 0.15s;
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       gap: 8px;
+      position: relative;
     }
-    .tab:hover { background: #383a40; color: #dbdee1; }
+    .tab:hover { background: #323439; color: #dbdee1; }
     .tab.active {
-      background: #1e1f22;
+      background: #2b2d31;
       color: #ffffff;
       border-color: #3f4147;
-      border-bottom: 2px solid #1e1f22;
       font-weight: 600;
+      z-index: 1;
+    }
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #5865f2;
     }
     .tab .avatar {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: #5865f2;
       display: inline-flex;
@@ -61,41 +87,59 @@
       font-size: 11px;
       font-weight: 700;
       color: #fff;
+      flex-shrink: 0;
     }
     .tab .avatar img { width: 100%; height: 100%; border-radius: 50%; }
+    .tab .avatar svg { width: 14px; height: 14px; fill: #fff; }
     .tab .link-count {
       background: #383a40;
-      padding: 1px 6px;
+      padding: 2px 7px;
       border-radius: 10px;
       font-size: 11px;
-      color: #99aab5;
+      color: #8e9297;
+      font-weight: 600;
     }
-    .tab.active .link-count { background: #5865f233; color: #5865f2; }
+    .tab.active .link-count { background: #5865f233; color: #7983f5; }
 
-    /* Header stats */
+    /* Header */
     .header {
       background: #2b2d31;
       padding: 16px 32px;
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
       border-bottom: 1px solid #3f4147;
+      flex-wrap: wrap;
     }
-    .header h1 { font-size: 20px; color: #ffffff; }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: 8px;
+    }
+    .header-brand svg { width: 28px; height: 28px; flex-shrink: 0; }
+    .header h1 { font-size: 18px; color: #ffffff; font-weight: 700; letter-spacing: -0.3px; }
+    .stat-pills { display: flex; gap: 8px; flex-wrap: wrap; }
     .header .stat {
       background: #383a40;
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 13px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #8e9297;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s;
     }
-    .header .stat strong { color: #5865f2; font-size: 16px; }
+    .header .stat:hover { background: #404349; }
+    .header .stat strong { color: #7983f5; font-size: 14px; font-weight: 700; }
 
     /* Main grid */
     .main {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
-      padding: 16px 32px;
+      padding: 20px 32px 32px;
       max-width: 1600px;
       margin: 0 auto;
     }
@@ -103,9 +147,18 @@
       background: #2b2d31;
       border-radius: 12px;
       padding: 20px;
-      border: 1px solid #3f4147;
+      border: 1px solid #33363b;
+      transition: border-color 0.2s;
     }
-    .card h2 { font-size: 16px; color: #ffffff; margin-bottom: 12px; }
+    .card:hover { border-color: #4f545c; }
+    .card h2 {
+      font-size: 13px;
+      color: #8e9297;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
     .card.full { grid-column: 1 / -1; }
     .graph-container {
       grid-column: 1 / -1;
@@ -118,20 +171,31 @@
     .chart-wrap canvas { width: 100% !important; height: auto !important; }
 
     /* Graph view tabs */
-    .view-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .view-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
     .view-btn {
       background: #383a40;
-      border: 1px solid #4f545c;
-      color: #99aab5;
+      border: 1px solid transparent;
+      color: #8e9297;
       padding: 5px 14px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
     }
+    .view-btn:hover { background: #404349; color: #dbdee1; }
     .view-btn.active { background: #5865f2; color: #ffffff; border-color: #5865f2; }
 
     /* Link table */
-    .table-controls { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .table-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .table-controls select, .table-controls input {
       background: #383a40;
       border: 1px solid #4f545c;
@@ -139,30 +203,111 @@
       padding: 6px 12px;
       border-radius: 6px;
       font-size: 13px;
+      transition: border-color 0.15s;
     }
+    .table-controls select:focus, .table-controls input:focus {
+      outline: none;
+      border-color: #5865f2;
+    }
+    .search-input {
+      background: #383a40;
+      border: 1px solid #4f545c;
+      color: #dbdee1;
+      padding: 6px 12px 6px 32px;
+      border-radius: 6px;
+      font-size: 13px;
+      width: 220px;
+      transition: border-color 0.15s, width 0.2s;
+    }
+    .search-input:focus { outline: none; border-color: #5865f2; width: 280px; }
+    .search-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 10px;
+      width: 14px;
+      height: 14px;
+      fill: #8e9297;
+      pointer-events: none;
+    }
+    .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
-      text-align: left; padding: 8px 12px; border-bottom: 2px solid #3f4147;
-      color: #99aab5; font-weight: 600; cursor: pointer; user-select: none;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 2px solid #3f4147;
+      color: #8e9297;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+      transition: color 0.15s;
     }
     th:hover { color: #ffffff; }
-    td { padding: 8px 12px; border-bottom: 1px solid #3f4147; }
-    td a { color: #5865f2; text-decoration: none; }
-    td a:hover { text-decoration: underline; }
+    th .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.4; }
+    th.sorted .sort-arrow { opacity: 1; color: #5865f2; }
+    td { padding: 10px 12px; border-bottom: 1px solid #2f3136; }
+    tr { transition: background 0.1s; }
+    tbody tr:hover { background: #32353b; }
+    td a { color: #7983f5; text-decoration: none; transition: color 0.15s; }
+    td a:hover { color: #a5adf5; text-decoration: underline; }
+    .score-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
     .score-bar {
-      display: inline-block; height: 6px; border-radius: 3px;
-      margin-right: 6px; vertical-align: middle;
+      display: inline-block; height: 4px; border-radius: 2px;
+      vertical-align: middle; min-width: 4px;
     }
     .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 4px;
-      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      display: inline-block; padding: 3px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
-    .badge-tool { background: #5865f233; color: #5865f2; }
-    .badge-tutorial { background: #57f28733; color: #57f287; }
-    .badge-pattern { background: #fee75c33; color: #fee75c; }
-    .badge-analysis { background: #eb459e33; color: #eb459e; }
-    .badge-reference { background: #99aab533; color: #99aab5; }
-    .badge-commentary { background: #ed424533; color: #ed4245; }
+    .badge-tool { background: #5865f220; color: #7983f5; }
+    .badge-tutorial { background: #57f28720; color: #57f287; }
+    .badge-pattern { background: #fee75c20; color: #fee75c; }
+    .badge-analysis { background: #eb459e20; color: #eb459e; }
+    .badge-reference { background: #99aab520; color: #99aab5; }
+    .badge-commentary { background: #ed424520; color: #ed4245; }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #2f3136;
+      font-size: 12px;
+      color: #8e9297;
+    }
+    .pagination-btns { display: flex; gap: 4px; }
+    .page-btn {
+      background: #383a40;
+      border: 1px solid transparent;
+      color: #8e9297;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      min-width: 32px;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .page-btn:hover:not(:disabled) { background: #404349; color: #dbdee1; }
+    .page-btn.active { background: #5865f2; color: #fff; border-color: #5865f2; }
+    .page-btn:disabled { opacity: 0.3; cursor: default; }
 
     /* Overlap analysis section */
     .overlap-section { display: none; }
@@ -170,16 +315,17 @@
 
     .overlap-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 12px;
-      margin-bottom: 16px;
     }
     .user-profile-card {
       background: #383a40;
       border-radius: 10px;
       padding: 16px;
       border-left: 3px solid #5865f2;
+      transition: transform 0.15s, box-shadow 0.15s;
     }
+    .user-profile-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
     .user-profile-card .profile-header {
       display: flex;
       align-items: center;
@@ -187,8 +333,8 @@
       margin-bottom: 12px;
     }
     .user-profile-card .profile-avatar {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: #5865f2;
       display: flex;
@@ -196,27 +342,30 @@
       justify-content: center;
       font-weight: 700;
       color: #fff;
-      font-size: 14px;
+      font-size: 15px;
+      flex-shrink: 0;
     }
     .user-profile-card .profile-avatar img { width: 100%; height: 100%; border-radius: 50%; }
     .user-profile-card .profile-name { font-weight: 600; color: #fff; font-size: 15px; }
     .user-profile-card .profile-stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
+      gap: 8px;
       font-size: 12px;
-      color: #99aab5;
+      color: #8e9297;
     }
-    .user-profile-card .profile-stats .val { color: #5865f2; font-weight: 600; font-size: 14px; }
-    .tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .user-profile-card .profile-stats .val { color: #7983f5; font-weight: 700; font-size: 16px; display: block; }
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
     .tag-pill {
       background: #2b2d3180;
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: 12px;
       font-size: 11px;
-      color: #99aab5;
+      color: #8e9297;
+      transition: background 0.15s;
     }
-    .tag-pill .tag-count { color: #5865f2; margin-left: 3px; }
+    .tag-pill:hover { background: #2b2d31cc; }
+    .tag-pill .tag-count { color: #7983f5; margin-left: 3px; font-weight: 600; }
 
     /* Heatmap */
     .heatmap-container {
@@ -224,44 +373,45 @@
       flex-direction: column;
       align-items: center;
       gap: 8px;
+      padding: 8px 0;
     }
     .heatmap-table { border-collapse: collapse; }
     .heatmap-table th {
       font-size: 12px;
-      color: #99aab5;
+      color: #8e9297;
       padding: 6px 10px;
       font-weight: 500;
       border: none;
       cursor: default;
     }
-    .heatmap-table th:hover { color: #99aab5; }
+    .heatmap-table th:hover { color: #8e9297; }
     .heatmap-table td {
       text-align: center;
-      padding: 0;
-      border: 2px solid #1e1f22;
+      padding: 3px;
+      border: none;
     }
     .heatmap-cell {
-      width: 64px;
-      height: 64px;
+      width: 72px;
+      height: 72px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: default;
       transition: transform 0.15s;
     }
     .heatmap-cell:hover { transform: scale(1.08); }
-    .heatmap-cell .hm-val { font-size: 18px; font-weight: 700; color: #fff; }
-    .heatmap-cell .hm-label { font-size: 9px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+    .heatmap-cell .hm-val { font-size: 20px; font-weight: 700; color: #fff; }
+    .heatmap-cell .hm-label { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 2px; }
     .heatmap-cell.self { background: #383a40; }
-    .heatmap-cell.self .hm-val { color: #99aab5; }
+    .heatmap-cell.self .hm-val { color: #8e9297; }
     .heatmap-legend {
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 11px;
-      color: #99aab5;
+      color: #8e9297;
       margin-top: 4px;
     }
     .heatmap-legend .lg-bar {
@@ -275,16 +425,19 @@
     .shared-cat-row {
       display: flex;
       align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px solid #3f414730;
+      padding: 8px 4px;
+      border-bottom: 1px solid #33363b;
       font-size: 13px;
+      transition: background 0.1s;
+      border-radius: 4px;
     }
+    .shared-cat-row:hover { background: #33363b; }
     .shared-cat-row:last-child { border-bottom: none; }
     .shared-cat-name { flex: 1; color: #dbdee1; }
     .shared-cat-users { display: flex; gap: 4px; }
     .shared-cat-pip {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -295,118 +448,165 @@
     }
     .shared-cat-count {
       font-size: 11px;
-      color: #99aab5;
-      margin-left: 8px;
-      min-width: 30px;
+      color: #8e9297;
+      margin-left: 10px;
+      min-width: 44px;
       text-align: right;
     }
 
     /* Tooltip */
     .tooltip {
-      position: absolute; background: #383a40; border: 1px solid #4f545c;
+      position: absolute; background: #1a1b1e; border: 1px solid #4f545c;
       border-radius: 8px; padding: 10px 14px; font-size: 13px;
       pointer-events: none; opacity: 0; transition: opacity 0.15s;
       max-width: 350px; z-index: 10;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     }
     .tooltip .tt-title { color: #ffffff; font-weight: 600; margin-bottom: 4px; }
-    .tooltip .tt-domain { color: #99aab5; font-size: 12px; }
-    .tooltip .tt-score { color: #5865f2; margin-top: 4px; }
+    .tooltip .tt-domain { color: #8e9297; font-size: 12px; }
+    .tooltip .tt-score { color: #7983f5; margin-top: 4px; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #8e9297;
+      font-size: 13px;
+    }
+
+    /* Domain favicon */
+    .domain-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #8e9297;
+      font-size: 12px;
+    }
+    .domain-cell img {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
   <!-- User tabs -->
   <div class="tab-bar" id="tab-bar">
     <div class="tab active" data-user="">
-      <span class="avatar">*</span>
+      <span class="avatar">
+        <svg viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v2a2 2 0 1 1-4 0V3a2 2 0 0 1 2-2zm4.5 6a1.5 1.5 0 0 1 1.5 1.5v.5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4v-.5A1.5 1.5 0 0 1 3.5 7h9z"/></svg>
+      </span>
       All
     </div>
   </div>
 
   <div class="header">
-    <h1 id="header-title">Link Forge</h1>
-    <div class="stat" id="stat-links"><strong>-</strong> links</div>
-    <div class="stat" id="stat-categories"><strong>-</strong> categories</div>
-    <div class="stat" id="stat-tools"><strong>-</strong> tools</div>
-    <div class="stat" id="stat-avg">avg forge: <strong>-</strong></div>
+    <div class="header-brand">
+      <svg viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#5865f2"/>
+        <path d="M8 16l4-6 4 6-4 6-4-6zm8 0l4-6 4 6-4 6-4-6z" fill="#fff" opacity="0.9"/>
+        <path d="M12 10l4 6-4 6" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.5"/>
+      </svg>
+      <h1 id="header-title">Link Forge</h1>
+    </div>
+    <div class="stat-pills">
+      <div class="stat" id="stat-links"><strong>-</strong> links</div>
+      <div class="stat" id="stat-categories"><strong>-</strong> categories</div>
+      <div class="stat" id="stat-tools"><strong>-</strong> tools</div>
+      <div class="stat" id="stat-avg">avg forge <strong>-</strong></div>
+    </div>
   </div>
 
   <div class="main">
-    <div class="card">
+    <div class="card fade-in">
       <h2>Forge Score Distribution</h2>
       <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
     </div>
-    <div class="card">
+    <div class="card fade-in" style="animation-delay:0.05s">
       <h2>Content Types</h2>
       <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
     </div>
     <!-- Overlap analysis (All tab only) -->
     <div class="overlap-section visible" id="overlap-section">
-      <div class="card full">
+      <div class="card full fade-in" style="animation-delay:0.1s">
         <h2>User Profiles</h2>
         <div class="overlap-grid" id="user-profiles"></div>
       </div>
-      <div class="card">
+      <div class="card fade-in" style="animation-delay:0.15s">
         <h2>Category Overlap Heatmap</h2>
         <div class="heatmap-container" id="heatmap"></div>
       </div>
-      <div class="card">
+      <div class="card fade-in" style="animation-delay:0.15s">
         <h2>Shared Categories</h2>
         <div style="max-height:360px;overflow-y:auto" id="shared-categories"></div>
       </div>
     </div>
 
-    <div class="card full graph-container">
+    <div class="card full graph-container fade-in" style="animation-delay:0.1s">
       <h2>Knowledge Graph</h2>
       <div class="view-tabs">
-        <button class="view-btn active" data-view="all">All Edges</button>
-        <button class="view-btn" data-view="links_to">LINKS_TO Only</button>
-        <button class="view-btn" data-view="categories">Categories Only</button>
+        <button class="view-btn active" data-view="links_to">LINKS_TO</button>
+        <button class="view-btn" data-view="categories">Categories</button>
+        <button class="view-btn" data-view="shared_by">Shared By</button>
+        <button class="view-btn" data-view="all">All Edges</button>
       </div>
       <div class="tooltip" id="tooltip"></div>
       <svg id="graph"></svg>
     </div>
-    <div class="card full">
-      <h2>All Links</h2>
-      <div class="table-controls">
-        <input type="number" id="filter-score" placeholder="Min score (0-1)" min="0" max="1" step="0.05" value="0">
-        <select id="filter-type">
-          <option value="">All types</option>
-          <option value="tool">Tool</option>
-          <option value="tutorial">Tutorial</option>
-          <option value="pattern">Pattern</option>
-          <option value="analysis">Analysis</option>
-          <option value="reference">Reference</option>
-          <option value="commentary">Commentary</option>
-        </select>
+    <div class="card full fade-in" style="animation-delay:0.15s">
+      <div class="table-header">
+        <h2 style="margin-bottom:0">All Links</h2>
+        <div class="table-controls">
+          <div class="search-wrap">
+            <svg viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+            <input type="text" class="search-input" id="filter-search" placeholder="Search links...">
+          </div>
+          <input type="number" id="filter-score" placeholder="Min score" min="0" max="1" step="0.05" value="0" style="width:100px">
+          <select id="filter-type">
+            <option value="">All types</option>
+            <option value="tool">Tool</option>
+            <option value="tutorial">Tutorial</option>
+            <option value="pattern">Pattern</option>
+            <option value="analysis">Analysis</option>
+            <option value="reference">Reference</option>
+            <option value="commentary">Commentary</option>
+          </select>
+        </div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th data-sort="forgeScore">Score</th>
-            <th data-sort="contentType">Type</th>
-            <th data-sort="title">Title</th>
-            <th data-sort="domain">Domain</th>
-            <th data-sort="savedAt">Added</th>
-          </tr>
-        </thead>
-        <tbody id="link-table"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="forgeScore" class="sorted">Score <span class="sort-arrow">▼</span></th>
+              <th data-sort="contentType">Type <span class="sort-arrow">▼</span></th>
+              <th data-sort="title">Title <span class="sort-arrow">▼</span></th>
+              <th data-sort="domain">Domain <span class="sort-arrow">▼</span></th>
+              <th data-sort="savedAt">Added <span class="sort-arrow">▼</span></th>
+            </tr>
+          </thead>
+          <tbody id="link-table"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
     </div>
   </div>
 
 <script>
-let currentUser = ''; // '' = all users
+let currentUser = '';
 let scoreChart = null;
 let typeChart = null;
 let simulation = null;
+let currentPage = 0;
+const PAGE_SIZE = 25;
 
 const SCORE_COLORS = {
   artifact: '#5865f2', guide: '#57f287', analysis: '#fee75c',
-  pointer: '#eb459e', commentary: '#ed4245', junk: '#99aab5',
+  pointer: '#eb459e', commentary: '#ed4245', junk: '#6d7078',
 };
 const TYPE_COLORS = {
   tool: '#5865f2', tutorial: '#57f287', pattern: '#fee75c',
-  analysis: '#eb459e', reference: '#99aab5', commentary: '#ed4245',
+  analysis: '#eb459e', reference: '#8e9297', commentary: '#ed4245',
 };
 const USER_COLORS = ['#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#f0b232', '#9b59b6', '#1abc9c'];
 
@@ -419,10 +619,25 @@ function scoreColor(s) {
   return SCORE_COLORS.junk;
 }
 
+function scoreTier(s) {
+  if (s >= 0.85) return 'artifact';
+  if (s >= 0.65) return 'guide';
+  if (s >= 0.45) return 'analysis';
+  if (s >= 0.25) return 'pointer';
+  if (s >= 0.10) return 'commentary';
+  return 'junk';
+}
+
 function qs(params) {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) { if (v) p.set(k, v); }
   return p.toString() ? '?' + p.toString() : '';
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 // --- Tab system ---
@@ -439,7 +654,7 @@ async function loadUsers() {
     const avatar = document.createElement('span');
     avatar.className = 'avatar';
     if (u.avatarUrl) {
-      avatar.innerHTML = `<img src="${u.avatarUrl}" alt="">`;
+      avatar.innerHTML = `<img src="${escapeHtml(u.avatarUrl)}" alt="">`;
     } else {
       avatar.textContent = u.displayName.charAt(0).toUpperCase();
       avatar.style.background = USER_COLORS[i % USER_COLORS.length];
@@ -456,18 +671,17 @@ async function loadUsers() {
     bar.appendChild(tab);
   });
 
-  // Click handler for all tabs
   bar.addEventListener('click', (e) => {
     const tab = e.target.closest('.tab');
     if (!tab) return;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     currentUser = tab.dataset.user;
+    currentPage = 0;
 
     const name = currentUser ? tab.textContent.trim().replace(/\d+$/, '').trim() : 'Link Forge';
     document.getElementById('header-title').textContent = name;
 
-    // Reload everything for this user
     loadStats();
     loadLinks();
     loadGraph();
@@ -485,7 +699,6 @@ async function loadStats() {
   document.querySelector('#stat-tools strong').textContent = data.counts.tools;
   document.querySelector('#stat-avg strong').textContent = data.avgScore;
 
-  // Destroy old charts
   if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
   if (typeChart) { typeChart.destroy(); typeChart = null; }
 
@@ -505,8 +718,8 @@ async function loadStats() {
       indexAxis: 'y',
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#99aab5' }, grid: { color: '#3f4147' } },
-        y: { ticks: { color: '#fff', font: { size: 12 } }, grid: { display: false } }
+        x: { ticks: { color: '#8e9297' }, grid: { color: '#33363b' } },
+        y: { ticks: { color: '#dbdee1', font: { size: 12 } }, grid: { display: false } }
       }
     }
   });
@@ -517,13 +730,17 @@ async function loadStats() {
       labels: data.contentTypes.map(t => t.type),
       datasets: [{
         data: data.contentTypes.map(t => t.count),
-        backgroundColor: data.contentTypes.map(t => TYPE_COLORS[t.type] || '#99aab5'),
+        backgroundColor: data.contentTypes.map(t => TYPE_COLORS[t.type] || '#8e9297'),
         borderWidth: 2, borderColor: '#2b2d31',
       }]
     },
     options: {
+      cutout: '55%',
       plugins: {
-        legend: { position: 'right', labels: { color: '#fff', font: { size: 12 }, padding: 10 } }
+        legend: {
+          position: 'right',
+          labels: { color: '#dbdee1', font: { size: 12 }, padding: 12, usePointStyle: true, pointStyleWidth: 10 }
+        }
       }
     }
   });
@@ -535,18 +752,26 @@ let sortKey = 'forgeScore';
 let sortAsc = false;
 
 async function loadLinks() {
-  const res = await fetch('/api/links' + qs({ user: currentUser, limit: '200' }));
+  const res = await fetch('/api/links' + qs({ user: currentUser, limit: '500' }));
   const data = await res.json();
   allLinks = data.links;
+  currentPage = 0;
   renderTable();
 }
 
-function renderTable() {
+function getFilteredLinks() {
   const minScore = parseFloat(document.getElementById('filter-score').value) || 0;
   const typeFilter = document.getElementById('filter-type').value;
+  const search = (document.getElementById('filter-search').value || '').toLowerCase().trim();
 
   let filtered = allLinks.filter(l => l.forgeScore >= minScore);
   if (typeFilter) filtered = filtered.filter(l => l.contentType === typeFilter);
+  if (search) filtered = filtered.filter(l =>
+    (l.title || '').toLowerCase().includes(search) ||
+    (l.domain || '').toLowerCase().includes(search) ||
+    (l.url || '').toLowerCase().includes(search) ||
+    (l.purpose || '').toLowerCase().includes(search)
+  );
 
   filtered.sort((a, b) => {
     const av = a[sortKey] ?? '';
@@ -555,37 +780,126 @@ function renderTable() {
     return sortAsc ? cmp : -cmp;
   });
 
-  document.getElementById('link-table').innerHTML = filtered.map(l => `
-    <tr>
-      <td>
-        <span class="score-bar" style="width:${Math.round(l.forgeScore * 60)}px;background:${scoreColor(l.forgeScore)}"></span>
-        ${l.forgeScore.toFixed(2)}
-      </td>
-      <td><span class="badge badge-${l.contentType}">${l.contentType}</span></td>
-      <td><a href="${l.url}" target="_blank">${(l.title || l.url).slice(0, 80)}</a></td>
-      <td>${l.domain}</td>
-      <td>${l.savedAt ? new Date(l.savedAt).toLocaleDateString() : '-'}</td>
-    </tr>
-  `).join('');
+  return filtered;
 }
 
+function renderTable() {
+  const filtered = getFilteredLinks();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (currentPage >= totalPages) currentPage = totalPages - 1;
+
+  const start = currentPage * PAGE_SIZE;
+  const page = filtered.slice(start, start + PAGE_SIZE);
+
+  if (page.length === 0) {
+    document.getElementById('link-table').innerHTML = `
+      <tr><td colspan="5" class="empty-state">No links match your filters</td></tr>
+    `;
+  } else {
+    document.getElementById('link-table').innerHTML = page.map(l => `
+      <tr>
+        <td>
+          <div class="score-cell">
+            <span class="score-bar" style="width:${Math.round(l.forgeScore * 50)}px;background:${scoreColor(l.forgeScore)}"></span>
+            ${l.forgeScore.toFixed(2)}
+          </div>
+        </td>
+        <td><span class="badge badge-${l.contentType}">${l.contentType}</span></td>
+        <td><a href="${escapeHtml(l.url)}" target="_blank" title="${escapeHtml(l.purpose || '')}">${escapeHtml((l.title || l.url).slice(0, 90))}</a></td>
+        <td><div class="domain-cell"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(l.domain)}&sz=32" alt="" loading="lazy">${escapeHtml(l.domain)}</div></td>
+        <td style="white-space:nowrap;color:#8e9297">${l.savedAt ? new Date(l.savedAt).toLocaleDateString() : '-'}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Pagination controls
+  const pag = document.getElementById('pagination');
+  if (filtered.length <= PAGE_SIZE) {
+    pag.innerHTML = `<span>${filtered.length} link${filtered.length !== 1 ? 's' : ''}</span><span></span>`;
+    return;
+  }
+
+  let btns = '';
+  btns += `<button class="page-btn" onclick="goPage(0)" ${currentPage === 0 ? 'disabled' : ''}>&laquo;</button>`;
+  btns += `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>&lsaquo;</button>`;
+
+  // Show page numbers with ellipsis
+  const maxVisible = 7;
+  let pages = [];
+  if (totalPages <= maxVisible) {
+    pages = Array.from({ length: totalPages }, (_, i) => i);
+  } else {
+    pages = [0];
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages - 2, currentPage + 2);
+    if (currentPage <= 3) { start = 1; end = 5; }
+    if (currentPage >= totalPages - 4) { start = totalPages - 6; end = totalPages - 2; }
+    if (start > 1) pages.push(-1); // ellipsis
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < totalPages - 2) pages.push(-1);
+    pages.push(totalPages - 1);
+  }
+
+  for (const p of pages) {
+    if (p === -1) {
+      btns += `<span style="padding:0 4px;color:#8e9297">...</span>`;
+    } else {
+      btns += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p + 1}</button>`;
+    }
+  }
+
+  btns += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>&rsaquo;</button>`;
+  btns += `<button class="page-btn" onclick="goPage(${totalPages - 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>&raquo;</button>`;
+
+  pag.innerHTML = `
+    <span>${start + 1}-${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length} links</span>
+    <div class="pagination-btns">${btns}</div>
+  `;
+}
+
+function goPage(p) {
+  const filtered = getFilteredLinks();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  currentPage = Math.max(0, Math.min(p, totalPages - 1));
+  renderTable();
+  // Scroll table into view
+  document.querySelector('.table-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Sort header clicks
 document.querySelectorAll('th[data-sort]').forEach(th => {
   th.addEventListener('click', () => {
     const key = th.dataset.sort;
     if (sortKey === key) sortAsc = !sortAsc;
     else { sortKey = key; sortAsc = false; }
+
+    // Update sort arrow visual
+    document.querySelectorAll('th[data-sort]').forEach(h => {
+      h.classList.remove('sorted');
+      h.querySelector('.sort-arrow').textContent = '▼';
+    });
+    th.classList.add('sorted');
+    th.querySelector('.sort-arrow').textContent = sortAsc ? '▲' : '▼';
+
+    currentPage = 0;
     renderTable();
   });
 });
-document.getElementById('filter-score').addEventListener('input', renderTable);
-document.getElementById('filter-type').addEventListener('change', renderTable);
+
+// Filter event listeners
+let searchTimeout;
+document.getElementById('filter-search').addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => { currentPage = 0; renderTable(); }, 200);
+});
+document.getElementById('filter-score').addEventListener('input', () => { currentPage = 0; renderTable(); });
+document.getElementById('filter-type').addEventListener('change', () => { currentPage = 0; renderTable(); });
 
 // --- Force Graph ---
 async function loadGraph() {
   const res = await fetch('/api/graph' + qs({ user: currentUser }));
   const data = await res.json();
 
-  // Clear previous
   const svgEl = document.getElementById('graph');
   svgEl.innerHTML = '';
   if (simulation) { simulation.stop(); simulation = null; }
@@ -615,8 +929,12 @@ async function loadGraph() {
       if (d.type === 'SHARED_BY') return '#57f287';
       return '#3f4147';
     })
-    .attr('stroke-width', d => d.type === 'LINKS_TO' ? 2 : d.type === 'SHARED_BY' ? 1.5 : 1)
-    .attr('stroke-opacity', 0.6)
+    .attr('stroke-width', d => d.type === 'LINKS_TO' ? 2 : d.type === 'SHARED_BY' ? 1 : 0.8)
+    .attr('stroke-opacity', d => {
+      // Default view: LINKS_TO focused
+      if (d.type === 'LINKS_TO') return 0.8;
+      return 0.06;
+    })
     .attr('stroke-dasharray', d => d.type === 'SHARED_BY' ? '4,3' : null);
 
   const node = g.append('g')
@@ -633,8 +951,14 @@ async function loadGraph() {
       if (d.nodeType === 'category') return '#fee75c';
       return scoreColor(d.forgeScore);
     })
-    .attr('stroke', d => d.nodeType === 'user' ? '#fff' : '#1e1f22')
-    .attr('stroke-width', d => d.nodeType === 'user' ? 2 : 1)
+    .attr('stroke', d => d.nodeType === 'user' ? '#fff' : '#1a1b1e')
+    .attr('stroke-width', d => d.nodeType === 'user' ? 2 : 0.5)
+    .attr('opacity', d => {
+      // Default: LINKS_TO focused
+      if (d.nodeType === 'link') return 1;
+      return 0.2;
+    })
+    .attr('cursor', d => d.nodeType === 'link' ? 'pointer' : 'default')
     .call(d3.drag()
       .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
       .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
@@ -643,11 +967,11 @@ async function loadGraph() {
     .on('mouseover', (e, d) => {
       tooltip.style.opacity = 1;
       if (d.nodeType === 'user') {
-        tooltip.innerHTML = `<div class="tt-title">${d.title}</div><div class="tt-domain">User</div>`;
+        tooltip.innerHTML = `<div class="tt-title">${escapeHtml(d.title)}</div><div class="tt-domain">User</div>`;
       } else if (d.nodeType === 'category') {
-        tooltip.innerHTML = `<div class="tt-title">${d.title}</div><div class="tt-domain">Category</div>`;
+        tooltip.innerHTML = `<div class="tt-title">${escapeHtml(d.title)}</div><div class="tt-domain">Category</div>`;
       } else {
-        tooltip.innerHTML = `<div class="tt-title">${d.title || d.id}</div><div class="tt-domain">${d.domain}</div><div class="tt-score">Forge: ${d.forgeScore.toFixed(2)} | ${d.contentType}</div>`;
+        tooltip.innerHTML = `<div class="tt-title">${escapeHtml(d.title || d.id)}</div><div class="tt-domain">${escapeHtml(d.domain)}</div><div class="tt-score">Forge: ${d.forgeScore.toFixed(2)} | ${d.contentType}</div>`;
       }
       tooltip.style.left = (e.offsetX + 15) + 'px';
       tooltip.style.top = (e.offsetY - 10) + 'px';
@@ -658,7 +982,7 @@ async function loadGraph() {
     });
 
   // User node labels
-  g.append('g')
+  const labels = g.append('g')
     .selectAll('text')
     .data(data.nodes.filter(d => d.nodeType === 'user'))
     .join('text')
@@ -666,14 +990,14 @@ async function loadGraph() {
     .attr('fill', '#57f287')
     .attr('text-anchor', 'middle')
     .attr('dy', -14)
+    .attr('opacity', 0.2)
     .text(d => d.title);
 
   simulation.on('tick', () => {
     link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
     node.attr('cx', d => d.x).attr('cy', d => d.y);
-    g.selectAll('text')
-      .attr('x', d => d.x).attr('y', d => d.y);
+    labels.attr('x', d => d.x).attr('y', d => d.y);
   });
 
   // View tab filtering
@@ -683,16 +1007,24 @@ async function loadGraph() {
       btn.classList.add('active');
       const view = btn.dataset.view;
 
-      link.attr('stroke-opacity', d => {
-        if (view === 'all') return 0.6;
-        if (view === 'links_to') return d.type === 'LINKS_TO' ? 0.8 : 0.05;
-        return d.type === 'CATEGORIZED_IN' ? 0.6 : 0.05;
-      });
-      node.attr('opacity', d => {
-        if (view === 'all') return 1;
-        if (view === 'links_to') return d.nodeType === 'link' ? 1 : 0.15;
-        return 1;
-      });
+      link.transition().duration(300)
+        .attr('stroke-opacity', d => {
+          if (view === 'all') return d.type === 'SHARED_BY' ? 0.15 : 0.5;
+          if (view === 'links_to') return d.type === 'LINKS_TO' ? 0.8 : 0.06;
+          if (view === 'categories') return d.type === 'CATEGORIZED_IN' ? 0.5 : 0.06;
+          if (view === 'shared_by') return d.type === 'SHARED_BY' ? 0.6 : 0.06;
+          return 0.5;
+        });
+      node.transition().duration(300)
+        .attr('opacity', d => {
+          if (view === 'all') return d.nodeType === 'user' ? 0.7 : 1;
+          if (view === 'links_to') return d.nodeType === 'link' ? 1 : 0.2;
+          if (view === 'categories') return d.nodeType === 'category' ? 1 : (d.nodeType === 'link' ? 0.8 : 0.2);
+          if (view === 'shared_by') return d.nodeType === 'user' ? 1 : (d.nodeType === 'link' ? 0.8 : 0.15);
+          return 1;
+        });
+      labels.transition().duration(300)
+        .attr('opacity', view === 'shared_by' || view === 'all' ? 1 : 0.2);
     };
   });
 }
@@ -723,19 +1055,19 @@ function renderUserProfiles(data) {
       `<span class="badge badge-${t.type}">${t.type} ${t.count}</span>`
     ).join(' ');
     const tagPills = (stats.topTags || []).slice(0, 8).map(t =>
-      `<span class="tag-pill">${t.tag}<span class="tag-count">${t.count}</span></span>`
+      `<span class="tag-pill">${escapeHtml(t.tag)}<span class="tag-count">${t.count}</span></span>`
     ).join('');
     const toolPills = (stats.topTools || []).slice(0, 6).map(t =>
-      `<span class="tag-pill">${t.tool}<span class="tag-count">${t.count}</span></span>`
+      `<span class="tag-pill">${escapeHtml(t.tool)}<span class="tag-count">${t.count}</span></span>`
     ).join('');
 
     return `
       <div class="user-profile-card" style="border-left-color:${color}">
         <div class="profile-header">
-          <div class="profile-avatar" style="background:${color}">${u.displayName.charAt(0).toUpperCase()}</div>
+          <div class="profile-avatar" style="background:${color}">${escapeHtml(u.displayName.charAt(0).toUpperCase())}</div>
           <div>
-            <div class="profile-name">${u.displayName}</div>
-            <div style="font-size:12px;color:#99aab5">${u.linkCount} links</div>
+            <div class="profile-name">${escapeHtml(u.displayName)}</div>
+            <div style="font-size:12px;color:#8e9297">${u.linkCount} links</div>
           </div>
         </div>
         <div class="profile-stats">
@@ -744,10 +1076,10 @@ function renderUserProfiles(data) {
           <div><span class="val">${stats.avgScore || 0}</span> avg score</div>
           <div><span class="val">${stats.maxScore || 0}</span> max score</div>
         </div>
-        <div style="margin-top:8px;font-size:12px;color:#99aab5">Types</div>
+        <div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Types</div>
         <div style="margin-top:4px">${typeBadges}</div>
-        ${tagPills ? `<div style="margin-top:8px;font-size:12px;color:#99aab5">Top Tags</div><div class="tag-cloud">${tagPills}</div>` : ''}
-        ${toolPills ? `<div style="margin-top:8px;font-size:12px;color:#99aab5">Top Tools</div><div class="tag-cloud">${toolPills}</div>` : ''}
+        ${tagPills ? `<div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Top Tags</div><div class="tag-cloud">${tagPills}</div>` : ''}
+        ${toolPills ? `<div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Top Tools</div><div class="tag-cloud">${toolPills}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -758,28 +1090,26 @@ function renderHeatmap(data) {
   const users = data.users;
 
   if (users.length < 2) {
-    container.innerHTML = '<div style="color:#99aab5;font-size:13px;padding:20px">Need 2+ users for overlap heatmap</div>';
+    container.innerHTML = '<div style="color:#8e9297;font-size:13px;padding:20px">Need 2+ users for overlap heatmap</div>';
     return;
   }
 
-  // Build lookup for pairwise data
   const pairKey = (a, b) => [a, b].sort().join('|');
   const pairMap = {};
   for (const p of data.pairwise) {
     pairMap[pairKey(p.userA, p.userB)] = p;
   }
 
-  // Find max shared for color scaling
   const maxShared = Math.max(1, ...data.pairwise.map(p => p.sharedCategories));
 
   let html = '<table class="heatmap-table"><thead><tr><th></th>';
   for (const u of users) {
-    html += `<th>${u.displayName}</th>`;
+    html += `<th>${escapeHtml(u.displayName)}</th>`;
   }
   html += '</tr></thead><tbody>';
 
   for (let i = 0; i < users.length; i++) {
-    html += `<tr><th>${users[i].displayName}</th>`;
+    html += `<tr><th>${escapeHtml(users[i].displayName)}</th>`;
     for (let j = 0; j < users.length; j++) {
       if (i === j) {
         const stats = data.userStats[users[i].discordId] || {};
@@ -805,11 +1135,10 @@ function renderSharedCategories(data) {
   const container = document.getElementById('shared-categories');
   const users = data.users;
 
-  // Only show categories shared by 2+ users
   const shared = data.categories.filter(c => c.sharedByCount >= 2);
 
   if (shared.length === 0) {
-    container.innerHTML = '<div style="color:#99aab5;font-size:13px;padding:10px">No shared categories yet</div>';
+    container.innerHTML = '<div style="color:#8e9297;font-size:13px;padding:10px">No shared categories yet</div>';
     return;
   }
 
@@ -818,12 +1147,12 @@ function renderSharedCategories(data) {
       const count = cat.users[u.discordId];
       if (!count) return '';
       const color = USER_COLORS[i % USER_COLORS.length];
-      return `<div class="shared-cat-pip" style="background:${color}" title="${u.displayName}: ${count} links">${count}</div>`;
+      return `<div class="shared-cat-pip" style="background:${color}" title="${escapeHtml(u.displayName)}: ${count} links">${count}</div>`;
     }).join('');
 
     return `
       <div class="shared-cat-row">
-        <span class="shared-cat-name">${cat.name}</span>
+        <span class="shared-cat-name">${escapeHtml(cat.name)}</span>
         <div class="shared-cat-users">${pips}</div>
         <span class="shared-cat-count">${cat.totalLinks} total</span>
       </div>
