@@ -230,6 +230,8 @@ export function createBot(
           comment: comment || undefined,
           discordMessageId: message.id,
           discordChannelId: message.channelId,
+          discordAuthorId: message.author.id,
+          discordAuthorName: message.author.displayName ?? message.author.username,
         });
         await addReaction(message, REACTIONS.QUEUED);
       } catch (err: unknown) {

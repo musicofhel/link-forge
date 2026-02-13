@@ -7,6 +7,7 @@ const CONSTRAINTS = [
   "CREATE CONSTRAINT tag_name_unique IF NOT EXISTS FOR (t:Tag) REQUIRE t.name IS UNIQUE",
   "CREATE CONSTRAINT technology_name_unique IF NOT EXISTS FOR (tech:Technology) REQUIRE tech.name IS UNIQUE",
   "CREATE CONSTRAINT tool_name_unique IF NOT EXISTS FOR (tool:Tool) REQUIRE tool.name IS UNIQUE",
+  "CREATE CONSTRAINT user_discord_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.discordId IS UNIQUE",
 ];
 
 const TEXT_INDEXES = [

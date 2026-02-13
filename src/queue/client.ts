@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import type BetterSqlite3 from "better-sqlite3";
-import { CREATE_QUEUE_TABLE, MIGRATE_ADD_PARENT_URL } from "./schema.js";
+import { CREATE_QUEUE_TABLE, MIGRATE_ADD_PARENT_URL, MIGRATE_ADD_AUTHOR, MIGRATE_ADD_AUTHOR_NAME } from "./schema.js";
 
 export class QueueClient {
   readonly db: BetterSqlite3.Database;
@@ -13,11 +13,17 @@ export class QueueClient {
   }
 
   private migrate(): void {
-    // Add parent_url column if it doesn't exist (for existing DBs)
     const columns = this.db.pragma("table_info(queue)") as Array<{ name: string }>;
-    const hasParentUrl = columns.some((c) => c.name === "parent_url");
-    if (!hasParentUrl) {
+    const colNames = new Set(columns.map((c) => c.name));
+
+    if (!colNames.has("parent_url")) {
       this.db.exec(MIGRATE_ADD_PARENT_URL);
+    }
+    if (!colNames.has("discord_author_id")) {
+      this.db.exec(MIGRATE_ADD_AUTHOR);
+    }
+    if (!colNames.has("discord_author_name")) {
+      this.db.exec(MIGRATE_ADD_AUTHOR_NAME);
     }
   }
 

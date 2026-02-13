@@ -35,6 +35,13 @@ export interface ToolNode {
   url: string;
 }
 
+export interface UserNode {
+  discordId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string;
+}
+
 export interface SearchResult {
   link: LinkNode;
   score: number;

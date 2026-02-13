@@ -93,6 +93,19 @@ export async function linksTo(
   );
 }
 
+export async function sharedBy(
+  session: Session,
+  linkUrl: string,
+  discordUserId: string,
+): Promise<void> {
+  await session.run(
+    `MATCH (l:Link {url: $linkUrl})
+     MATCH (u:User {discordId: $discordUserId})
+     MERGE (l)-[:SHARED_BY]->(u)`,
+    { linkUrl, discordUserId },
+  );
+}
+
 export async function toolUsedWith(
   session: Session,
   toolName: string,

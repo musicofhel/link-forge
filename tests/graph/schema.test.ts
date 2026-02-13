@@ -84,8 +84,8 @@ describe("setupSchema", () => {
     await setupSchema(session, logger);
 
     const runMock = vi.mocked(session.run);
-    // 5 constraints + 2 text indexes + 1 vector index = 8
-    expect(runMock).toHaveBeenCalledTimes(8);
+    // 6 constraints + 2 text indexes + 1 vector index = 9
+    expect(runMock).toHaveBeenCalledTimes(9);
   });
 
   it("logs progress at each stage", async () => {

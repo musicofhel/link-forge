@@ -5,6 +5,8 @@ export interface EnqueueItem {
   comment?: string;
   discordMessageId: string;
   discordChannelId: string;
+  discordAuthorId?: string;
+  discordAuthorName?: string;
 }
 
 export interface QueueRow {
@@ -13,6 +15,8 @@ export interface QueueRow {
   comment: string | null;
   discord_message_id: string;
   discord_channel_id: string;
+  discord_author_id: string | null;
+  discord_author_name: string | null;
   status: string;
   error: string | null;
   parent_url: string | null;
@@ -29,14 +33,16 @@ export interface QueueStats {
 
 export function enqueue(db: BetterSqlite3.Database, item: EnqueueItem): number {
   const stmt = db.prepare(
-    `INSERT INTO queue (url, comment, discord_message_id, discord_channel_id)
-     VALUES (@url, @comment, @discordMessageId, @discordChannelId)`
+    `INSERT INTO queue (url, comment, discord_message_id, discord_channel_id, discord_author_id, discord_author_name)
+     VALUES (@url, @comment, @discordMessageId, @discordChannelId, @discordAuthorId, @discordAuthorName)`
   );
   const result = stmt.run({
     url: item.url,
     comment: item.comment ?? null,
     discordMessageId: item.discordMessageId,
     discordChannelId: item.discordChannelId,
+    discordAuthorId: item.discordAuthorId ?? null,
+    discordAuthorName: item.discordAuthorName ?? null,
   });
   return Number(result.lastInsertRowid);
 }

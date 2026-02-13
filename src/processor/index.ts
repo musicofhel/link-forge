@@ -22,7 +22,9 @@ import {
   linkMentionsTool,
   linkMentionsTech,
   linksTo,
+  sharedBy,
 } from "../graph/relationships.js";
+import { createUser } from "../graph/repositories/user.repository.js";
 import { updateLinkCount } from "../graph/repositories/category.repository.js";
 import { extractUrlsFromContent } from "./link-extractor.js";
 import type { Driver } from "neo4j-driver";
@@ -136,6 +138,17 @@ export function createProcessor(
 
       // Update category link count
       await updateLinkCount(session, categorization.category);
+
+      // Create User node + SHARED_BY relationship if author info is available
+      if (item.discord_author_id) {
+        await createUser(session, {
+          discordId: item.discord_author_id,
+          username: item.discord_author_name ?? "unknown",
+          displayName: item.discord_author_name ?? "unknown",
+          avatarUrl: "",
+        });
+        await sharedBy(session, item.url, item.discord_author_id);
+      }
 
       // Step 5: Extract embedded URLs and enqueue them
       if (scraped.domain === "x.com") {

@@ -16,3 +16,11 @@ CREATE TABLE IF NOT EXISTS queue (
 export const MIGRATE_ADD_PARENT_URL = `
 ALTER TABLE queue ADD COLUMN parent_url TEXT;
 `;
+
+export const MIGRATE_ADD_AUTHOR = `
+ALTER TABLE queue ADD COLUMN discord_author_id TEXT;
+`;
+
+export const MIGRATE_ADD_AUTHOR_NAME = `
+ALTER TABLE queue ADD COLUMN discord_author_name TEXT;
+`;
