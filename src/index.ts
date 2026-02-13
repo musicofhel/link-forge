@@ -8,6 +8,7 @@ import { createEmbeddingService } from "./embeddings/index.js";
 import { createProcessor } from "./processor/index.js";
 import { createDiscordNotifier } from "./processor/discord-notifier.js";
 import { createTaxonomyManager } from "./taxonomy/manager.js";
+import { createDashboardServer } from "./dashboard/server.js";
 
 async function main() {
   const config = loadConfig();
@@ -39,8 +40,16 @@ async function main() {
   const queueClient = new QueueClient(config.sqlite.path);
   logger.info("SQLite queue initialized");
 
-  // 5. Start Discord bot
-  const bot = createBot(config.discord, queueClient, logger);
+  // 5. Start dashboard server
+  const dashboardPort = parseInt(process.env["DASHBOARD_PORT"] ?? "3848");
+  const dashboard = createDashboardServer(graphClient.driver, logger);
+  dashboard.start(dashboardPort);
+
+  // 6. Start Discord bot (with slash command deps)
+  const bot = createBot(config.discord, queueClient, logger, {
+    neo4jDriver: graphClient.driver,
+    dashboardPort,
+  });
   await bot.login();
   logger.info("Discord bot connected");
 
@@ -82,6 +91,7 @@ async function main() {
 
     processor.stop();
     taxonomy.stop();
+    dashboard.stop();
 
     await bot.destroy();
     logger.info("Discord bot disconnected");

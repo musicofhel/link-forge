@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link Forge Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1e1f22;
+      color: #dbdee1;
+      min-height: 100vh;
+    }
+    .header {
+      background: #2b2d31;
+      padding: 20px 32px;
+      border-bottom: 1px solid #3f4147;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .header h1 {
+      font-size: 24px;
+      color: #ffffff;
+    }
+    .header .stat {
+      background: #383a40;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .header .stat strong {
+      color: #5865f2;
+      font-size: 18px;
+    }
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #2b2d31;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #3f4147;
+    }
+    .card h2 {
+      font-size: 16px;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+    .card.full { grid-column: 1 / -1; }
+    .graph-container {
+      grid-column: 1 / -1;
+      height: 600px;
+      position: relative;
+      overflow: hidden;
+    }
+    .graph-container svg { width: 100%; height: 100%; }
+    .chart-wrap { position: relative; width: 100%; max-height: 300px; }
+    .chart-wrap canvas { width: 100% !important; height: auto !important; }
+
+    /* Link table */
+    .table-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .table-controls select, .table-controls input {
+      background: #383a40;
+      border: 1px solid #4f545c;
+      color: #dbdee1;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 2px solid #3f4147;
+      color: #99aab5;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { color: #ffffff; }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #3f4147;
+    }
+    td a {
+      color: #5865f2;
+      text-decoration: none;
+    }
+    td a:hover { text-decoration: underline; }
+    .score-bar {
+      display: inline-block;
+      height: 6px;
+      border-radius: 3px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-tool { background: #5865f233; color: #5865f2; }
+    .badge-tutorial { background: #57f28733; color: #57f287; }
+    .badge-pattern { background: #fee75c33; color: #fee75c; }
+    .badge-analysis { background: #eb459e33; color: #eb459e; }
+    .badge-reference { background: #99aab533; color: #99aab5; }
+    .badge-commentary { background: #ed424533; color: #ed4245; }
+
+    /* D3 tooltip */
+    .tooltip {
+      position: absolute;
+      background: #383a40;
+      border: 1px solid #4f545c;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 350px;
+      z-index: 10;
+    }
+    .tooltip .tt-title { color: #ffffff; font-weight: 600; margin-bottom: 4px; }
+    .tooltip .tt-domain { color: #99aab5; font-size: 12px; }
+    .tooltip .tt-score { color: #5865f2; margin-top: 4px; }
+
+    /* Tab system for graph */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      background: #383a40;
+      border: 1px solid #4f545c;
+      color: #99aab5;
+      padding: 6px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .tab-btn.active {
+      background: #5865f2;
+      color: #ffffff;
+      border-color: #5865f2;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Link Forge</h1>
+    <div class="stat" id="stat-links"><strong>-</strong> links</div>
+    <div class="stat" id="stat-categories"><strong>-</strong> categories</div>
+    <div class="stat" id="stat-tools"><strong>-</strong> tools</div>
+    <div class="stat" id="stat-avg">avg forge: <strong>-</strong></div>
+  </div>
+
+  <div class="main">
+    <!-- Score Distribution Chart -->
+    <div class="card">
+      <h2>Forge Score Distribution</h2>
+      <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
+    </div>
+
+    <!-- Content Type Chart -->
+    <div class="card">
+      <h2>Content Types</h2>
+      <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
+    </div>
+
+    <!-- Force-directed Graph -->
+    <div class="card full graph-container">
+      <h2>Knowledge Graph</h2>
+      <div class="tabs">
+        <button class="tab-btn active" data-view="all">All Edges</button>
+        <button class="tab-btn" data-view="links_to">LINKS_TO Only</button>
+        <button class="tab-btn" data-view="categories">Categories Only</button>
+      </div>
+      <div class="tooltip" id="tooltip"></div>
+      <svg id="graph"></svg>
+    </div>
+
+    <!-- Links Table -->
+    <div class="card full">
+      <h2>All Links</h2>
+      <div class="table-controls">
+        <input type="number" id="filter-score" placeholder="Min score (0-1)" min="0" max="1" step="0.05" value="0">
+        <select id="filter-type">
+          <option value="">All types</option>
+          <option value="tool">Tool</option>
+          <option value="tutorial">Tutorial</option>
+          <option value="pattern">Pattern</option>
+          <option value="analysis">Analysis</option>
+          <option value="reference">Reference</option>
+          <option value="commentary">Commentary</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="forgeScore">Score</th>
+            <th data-sort="contentType">Type</th>
+            <th data-sort="title">Title</th>
+            <th data-sort="domain">Domain</th>
+            <th data-sort="savedAt">Added</th>
+          </tr>
+        </thead>
+        <tbody id="link-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const SCORE_COLORS = {
+  artifact: '#5865f2',
+  guide: '#57f287',
+  analysis: '#fee75c',
+  pointer: '#eb459e',
+  commentary: '#ed4245',
+  junk: '#99aab5',
+};
+
+function scoreColor(s) {
+  if (s >= 0.85) return SCORE_COLORS.artifact;
+  if (s >= 0.65) return SCORE_COLORS.guide;
+  if (s >= 0.45) return SCORE_COLORS.analysis;
+  if (s >= 0.25) return SCORE_COLORS.pointer;
+  if (s >= 0.10) return SCORE_COLORS.commentary;
+  return SCORE_COLORS.junk;
+}
+
+// --- Stats + Charts ---
+async function loadStats() {
+  const res = await fetch('/api/stats');
+  const data = await res.json();
+
+  document.querySelector('#stat-links strong').textContent = data.counts.links;
+  document.querySelector('#stat-categories strong').textContent = data.counts.categories;
+  document.querySelector('#stat-tools strong').textContent = data.counts.tools;
+  document.querySelector('#stat-avg strong').textContent = data.avgScore;
+
+  // Score distribution chart
+  const sd = data.scoreDistribution;
+  new Chart(document.getElementById('scoreChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Artifact (0.85+)', 'Guide (0.65-0.84)', 'Analysis (0.45-0.64)', 'Pointer (0.25-0.44)', 'Commentary (0.10-0.24)', 'Junk (<0.10)'],
+      datasets: [{
+        data: [sd.artifact, sd.guide, sd.analysis, sd.pointer, sd.commentary, sd.junk],
+        backgroundColor: Object.values(SCORE_COLORS),
+        borderWidth: 0,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#99aab5' }, grid: { color: '#3f4147' } },
+        y: { ticks: { color: '#fff', font: { size: 12 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Content type doughnut
+  const typeColors = { tool: '#5865f2', tutorial: '#57f287', pattern: '#fee75c', analysis: '#eb459e', reference: '#99aab5', commentary: '#ed4245' };
+  new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: data.contentTypes.map(t => t.type),
+      datasets: [{
+        data: data.contentTypes.map(t => t.count),
+        backgroundColor: data.contentTypes.map(t => typeColors[t.type] || '#99aab5'),
+        borderWidth: 2,
+        borderColor: '#2b2d31',
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: 'right', labels: { color: '#fff', font: { size: 12 }, padding: 10 } }
+      }
+    }
+  });
+}
+
+// --- Links Table ---
+let allLinks = [];
+let sortKey = 'forgeScore';
+let sortAsc = false;
+
+async function loadLinks() {
+  const res = await fetch('/api/links?limit=200');
+  const data = await res.json();
+  allLinks = data.links;
+  renderTable();
+}
+
+function renderTable() {
+  const minScore = parseFloat(document.getElementById('filter-score').value) || 0;
+  const typeFilter = document.getElementById('filter-type').value;
+
+  let filtered = allLinks.filter(l => l.forgeScore >= minScore);
+  if (typeFilter) filtered = filtered.filter(l => l.contentType === typeFilter);
+
+  filtered.sort((a, b) => {
+    const av = a[sortKey] ?? '';
+    const bv = b[sortKey] ?? '';
+    const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv));
+    return sortAsc ? cmp : -cmp;
+  });
+
+  const tbody = document.getElementById('link-table');
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td>
+        <span class="score-bar" style="width:${Math.round(l.forgeScore * 60)}px;background:${scoreColor(l.forgeScore)}"></span>
+        ${l.forgeScore.toFixed(2)}
+      </td>
+      <td><span class="badge badge-${l.contentType}">${l.contentType}</span></td>
+      <td><a href="${l.url}" target="_blank">${l.title || l.url}</a></td>
+      <td>${l.domain}</td>
+      <td>${l.savedAt ? new Date(l.savedAt).toLocaleDateString() : '-'}</td>
+    </tr>
+  `).join('');
+}
+
+document.querySelectorAll('th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = false; }
+    renderTable();
+  });
+});
+document.getElementById('filter-score').addEventListener('input', renderTable);
+document.getElementById('filter-type').addEventListener('change', renderTable);
+
+// --- Force Graph ---
+async function loadGraph() {
+  const res = await fetch('/api/graph');
+  const data = await res.json();
+
+  const container = document.querySelector('.graph-container');
+  const svg = d3.select('#graph');
+  const tooltip = document.getElementById('tooltip');
+  const width = container.clientWidth;
+  const height = 560;
+
+  svg.attr('viewBox', [0, 0, width, height]);
+
+  let currentView = 'all';
+
+  const simulation = d3.forceSimulation(data.nodes)
+    .force('link', d3.forceLink(data.edges).id(d => d.id).distance(80))
+    .force('charge', d3.forceManyBody().strength(-120))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide(12));
+
+  const g = svg.append('g');
+
+  // Zoom
+  svg.call(d3.zoom().scaleExtent([0.2, 5]).on('zoom', e => g.attr('transform', e.transform)));
+
+  const link = g.append('g')
+    .selectAll('line')
+    .data(data.edges)
+    .join('line')
+    .attr('stroke', d => d.type === 'LINKS_TO' ? '#5865f2' : '#3f4147')
+    .attr('stroke-width', d => d.type === 'LINKS_TO' ? 2 : 1)
+    .attr('stroke-opacity', 0.6);
+
+  const node = g.append('g')
+    .selectAll('circle')
+    .data(data.nodes)
+    .join('circle')
+    .attr('r', d => d.nodeType === 'category' ? 5 : 4 + d.forgeScore * 8)
+    .attr('fill', d => d.nodeType === 'category' ? '#fee75c' : scoreColor(d.forgeScore))
+    .attr('stroke', '#1e1f22')
+    .attr('stroke-width', 1)
+    .call(d3.drag()
+      .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+    )
+    .on('mouseover', (e, d) => {
+      tooltip.style.opacity = 1;
+      tooltip.innerHTML = d.nodeType === 'category'
+        ? `<div class="tt-title">${d.title}</div><div class="tt-domain">Category</div>`
+        : `<div class="tt-title">${d.title || d.id}</div><div class="tt-domain">${d.domain}</div><div class="tt-score">Forge: ${d.forgeScore.toFixed(2)} | ${d.contentType}</div>`;
+      tooltip.style.left = (e.offsetX + 15) + 'px';
+      tooltip.style.top = (e.offsetY - 10) + 'px';
+    })
+    .on('mouseout', () => { tooltip.style.opacity = 0; })
+    .on('click', (e, d) => {
+      if (d.nodeType === 'link') window.open(d.id, '_blank');
+    });
+
+  simulation.on('tick', () => {
+    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    node.attr('cx', d => d.x).attr('cy', d => d.y);
+  });
+
+  // Tab filtering
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentView = btn.dataset.view;
+
+      link.attr('stroke-opacity', d => {
+        if (currentView === 'all') return 0.6;
+        if (currentView === 'links_to') return d.type === 'LINKS_TO' ? 0.8 : 0.05;
+        return d.type === 'CATEGORIZED_IN' ? 0.6 : 0.05;
+      });
+
+      node.attr('opacity', d => {
+        if (currentView === 'all') return 1;
+        if (currentView === 'links_to') return d.nodeType === 'link' ? 1 : 0.15;
+        return 1;
+      });
+    });
+  });
+}
+
+// Boot
+loadStats();
+loadLinks();
+loadGraph();
+</script>
+</body>
+</html>

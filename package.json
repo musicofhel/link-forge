@@ -20,12 +20,16 @@
     "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.5.1",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "@mozilla/readability": "^0.5.0",
-    "@huggingface/transformers": "^3.5.1",
+    "@types/express": "^5.0.6",
     "better-sqlite3": "^11.9.1",
+    "chart.js": "^4.5.1",
+    "chartjs-node-canvas": "^5.0.0",
     "discord.js": "^14.18.0",
     "dotenv": "^16.5.0",
+    "express": "^5.2.1",
     "jsdom": "^26.1.0",
     "neo4j-driver": "^5.28.3",
     "pino": "^9.6.0",
