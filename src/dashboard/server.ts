@@ -9,15 +9,15 @@ import { generateScoreDistributionChart, generateContentTypeChart, generateTopCa
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Resolve HTML file — works both in dev (tsx src/) and prod (node dist/)
 function resolveHtml(): string {
   const local = path.join(__dirname, "index.html");
   if (fs.existsSync(local)) return local;
-  // Fallback: look in src/dashboard/ from project root
   const srcPath = path.join(__dirname, "../../src/dashboard/index.html");
   if (fs.existsSync(srcPath)) return srcPath;
-  return local; // will 404 if neither exists
+  return local;
 }
+
+const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
 
 export interface DashboardServer {
   start(port: number): void;
@@ -31,23 +31,54 @@ export function createDashboardServer(
   const app = express();
   let server: ReturnType<typeof app.listen> | null = null;
 
-  // Serve the dashboard HTML
   const htmlPath = resolveHtml();
   app.get("/dashboard", (_req, res) => {
     res.sendFile(htmlPath);
   });
 
-  // Stats API — run queries sequentially (Neo4j sessions can't handle parallel queries)
-  app.get("/api/stats", async (_req, res) => {
+  // Users API
+  app.get("/api/users", async (_req, res) => {
     const session = neo4jDriver.session();
     try {
-      const linksRes = await session.run("MATCH (l:Link) RETURN count(l) AS count");
-      const catsRes = await session.run("MATCH (c:Category) RETURN count(c) AS count");
-      const tagsRes = await session.run("MATCH (t:Tag) RETURN count(t) AS count");
-      const toolsRes = await session.run("MATCH (t:Tool) RETURN count(t) AS count");
-      const techsRes = await session.run("MATCH (t:Technology) RETURN count(t) AS count");
+      const result = await session.run(`
+        MATCH (u:User)
+        OPTIONAL MATCH (u)<-[:SHARED_BY]-(l:Link)
+        RETURN u.discordId AS discordId, u.username AS username,
+               u.displayName AS displayName, u.avatarUrl AS avatarUrl,
+               count(l) AS linkCount
+        ORDER BY linkCount DESC
+      `);
+
+      const users = result.records.map((r) => ({
+        discordId: r.get("discordId") as string,
+        username: r.get("username") as string,
+        displayName: r.get("displayName") as string,
+        avatarUrl: r.get("avatarUrl") as string,
+        linkCount: toNum(r.get("linkCount")),
+      }));
+
+      res.json({ users });
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch users");
+      res.status(500).json({ error: "Failed to fetch users" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Stats API — optional ?user=discordId filter
+  app.get("/api/stats", async (req, res) => {
+    const session = neo4jDriver.session();
+    const userId = req.query["user"] as string | undefined;
+    try {
+      const uf = userId ? { match: "(l:Link)-[:SHARED_BY]->(u:User {discordId: $userId})", params: { userId } }
+                        : { match: "(l:Link)", params: {} };
+
+      const linksRes = await session.run(`MATCH ${uf.match} RETURN count(l) AS count`, uf.params);
+      const catsRes = await session.run(
+        `MATCH ${uf.match}-[:CATEGORIZED_IN]->(c:Category) RETURN count(DISTINCT c) AS count`, uf.params);
       const scoreRes = await session.run(`
-        MATCH (l:Link)
+        MATCH ${uf.match}
         WHERE l.forgeScore IS NOT NULL
         RETURN
           sum(CASE WHEN l.forgeScore >= 0.85 THEN 1 ELSE 0 END) AS artifact,
@@ -57,24 +88,44 @@ export function createDashboardServer(
           sum(CASE WHEN l.forgeScore >= 0.10 AND l.forgeScore < 0.25 THEN 1 ELSE 0 END) AS commentary,
           sum(CASE WHEN l.forgeScore < 0.10 THEN 1 ELSE 0 END) AS junk,
           avg(l.forgeScore) AS avgScore
-      `);
+      `, uf.params);
       const typeRes = await session.run(`
-        MATCH (l:Link)
+        MATCH ${uf.match}
         WHERE l.contentType IS NOT NULL
         RETURN l.contentType AS type, count(l) AS count
         ORDER BY count DESC
-      `);
+      `, uf.params);
 
-      const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
+      // Only compute global tag/tool/tech counts when no user filter
+      let tagCount = 0, toolCount = 0, techCount = 0;
+      if (!userId) {
+        const tagsRes = await session.run("MATCH (t:Tag) RETURN count(t) AS count");
+        const toolsRes = await session.run("MATCH (t:Tool) RETURN count(t) AS count");
+        const techsRes = await session.run("MATCH (t:Technology) RETURN count(t) AS count");
+        tagCount = toNum(tagsRes.records[0]?.get("count"));
+        toolCount = toNum(toolsRes.records[0]?.get("count"));
+        techCount = toNum(techsRes.records[0]?.get("count"));
+      } else {
+        const tagsRes = await session.run(
+          `MATCH ${uf.match}-[:TAGGED_WITH]->(t:Tag) RETURN count(DISTINCT t) AS count`, uf.params);
+        const toolsRes = await session.run(
+          `MATCH ${uf.match}-[:MENTIONS_TOOL]->(t:Tool) RETURN count(DISTINCT t) AS count`, uf.params);
+        const techsRes = await session.run(
+          `MATCH ${uf.match}-[:MENTIONS_TECH]->(t:Technology) RETURN count(DISTINCT t) AS count`, uf.params);
+        tagCount = toNum(tagsRes.records[0]?.get("count"));
+        toolCount = toNum(toolsRes.records[0]?.get("count"));
+        techCount = toNum(techsRes.records[0]?.get("count"));
+      }
+
       const scoreRec = scoreRes.records[0]!;
 
       res.json({
         counts: {
           links: toNum(linksRes.records[0]?.get("count")),
           categories: toNum(catsRes.records[0]?.get("count")),
-          tags: toNum(tagsRes.records[0]?.get("count")),
-          tools: toNum(toolsRes.records[0]?.get("count")),
-          technologies: toNum(techsRes.records[0]?.get("count")),
+          tags: tagCount,
+          tools: toolCount,
+          technologies: techCount,
         },
         scoreDistribution: {
           artifact: toNum(scoreRec.get("artifact")),
@@ -98,31 +149,65 @@ export function createDashboardServer(
     }
   });
 
-  // Graph data API for D3 force layout
-  app.get("/api/graph", async (_req, res) => {
+  // Graph data API — optional ?user=discordId filter
+  app.get("/api/graph", async (req, res) => {
     const session = neo4jDriver.session();
+    const userId = req.query["user"] as string | undefined;
     try {
+      const uf = userId ? { match: "(l:Link)-[:SHARED_BY]->(u:User {discordId: $userId})", params: { userId } }
+                        : { match: "(l:Link)", params: {} };
+
       const nodesRes = await session.run(`
-        MATCH (l:Link)
+        MATCH ${uf.match}
         RETURN l.url AS id, l.title AS title, l.domain AS domain,
                COALESCE(l.forgeScore, 0) AS forgeScore,
                COALESCE(l.contentType, 'reference') AS contentType
         ORDER BY l.forgeScore DESC
-      `);
+      `, uf.params);
+
+      // For LINKS_TO, only show edges between links in the current set
+      const linkUrls = new Set(nodesRes.records.map((r) => r.get("id") as string));
+
       const linksToRes = await session.run(`
         MATCH (a:Link)-[:LINKS_TO]->(b:Link)
         RETURN a.url AS source, b.url AS target, 'LINKS_TO' AS type
       `);
       const catEdgesRes = await session.run(`
-        MATCH (l:Link)-[:CATEGORIZED_IN]->(c:Category)
+        MATCH ${uf.match}-[:CATEGORIZED_IN]->(c:Category)
         RETURN l.url AS source, c.name AS target, 'CATEGORIZED_IN' AS type
-      `);
+      `, uf.params);
 
-      // Collect category nodes from edges
+      // Also include SHARED_BY edges + User nodes for the "All" view
+      let userNodes: Array<{ id: string; title: string; domain: string; forgeScore: number; contentType: string; nodeType: "user" }> = [];
+      let sharedByEdges: Array<{ source: string; target: string; type: string }> = [];
+
+      if (!userId) {
+        const userRes = await session.run(`
+          MATCH (u:User)<-[:SHARED_BY]-(l:Link)
+          RETURN DISTINCT u.discordId AS discordId, u.displayName AS displayName
+        `);
+        userNodes = userRes.records.map((r) => ({
+          id: `user:${r.get("discordId") as string}`,
+          title: r.get("displayName") as string,
+          domain: "",
+          forgeScore: 0,
+          contentType: "",
+          nodeType: "user" as const,
+        }));
+
+        const sbRes = await session.run(`
+          MATCH (l:Link)-[:SHARED_BY]->(u:User)
+          RETURN l.url AS source, u.discordId AS target, 'SHARED_BY' AS type
+        `);
+        sharedByEdges = sbRes.records.map((r) => ({
+          source: r.get("source") as string,
+          target: `user:${r.get("target") as string}`,
+          type: "SHARED_BY",
+        }));
+      }
+
       const categoryNodes = new Set<string>();
       catEdgesRes.records.forEach((r) => categoryNodes.add(r.get("target") as string));
-
-      const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
 
       const nodes = [
         ...nodesRes.records.map((r) => ({
@@ -141,19 +226,23 @@ export function createDashboardServer(
           contentType: "",
           nodeType: "category" as const,
         })),
+        ...userNodes,
       ];
 
       const edges = [
-        ...linksToRes.records.map((r) => ({
-          source: r.get("source") as string,
-          target: r.get("target") as string,
-          type: "LINKS_TO",
-        })),
+        ...linksToRes.records
+          .filter((r) => linkUrls.has(r.get("source") as string) && linkUrls.has(r.get("target") as string))
+          .map((r) => ({
+            source: r.get("source") as string,
+            target: r.get("target") as string,
+            type: "LINKS_TO",
+          })),
         ...catEdgesRes.records.map((r) => ({
           source: r.get("source") as string,
           target: `cat:${r.get("target") as string}`,
           type: "CATEGORIZED_IN",
         })),
+        ...sharedByEdges,
       ];
 
       res.json({ nodes, edges });
@@ -165,21 +254,32 @@ export function createDashboardServer(
     }
   });
 
-  // Paginated links API
+  // Paginated links API — optional ?user=discordId filter
   app.get("/api/links", async (req, res) => {
     const session = neo4jDriver.session();
     try {
       const minScore = parseFloat(req.query["min_score"] as string) || 0;
       const category = (req.query["category"] as string) || "";
       const contentType = (req.query["content_type"] as string) || "";
+      const userId = (req.query["user"] as string) || "";
       const limit = neo4j.int(Math.min(parseInt(req.query["limit"] as string) || 50, 200));
       const offset = neo4j.int(parseInt(req.query["offset"] as string) || 0);
 
       let cypher = "MATCH (l:Link)";
       const params: Record<string, unknown> = { limit, offset, minScore };
 
+      if (userId) {
+        cypher += "-[:SHARED_BY]->(u:User {discordId: $userId})";
+        params["userId"] = userId;
+      }
+
       if (category) {
-        cypher += "-[:CATEGORIZED_IN]->(c:Category {name: $category})";
+        // Need a second MATCH for category when user filter is also present
+        if (userId) {
+          cypher += " MATCH (l)-[:CATEGORIZED_IN]->(c:Category {name: $category})";
+        } else {
+          cypher += "-[:CATEGORIZED_IN]->(c:Category {name: $category})";
+        }
         params["category"] = category;
       }
 
@@ -200,7 +300,6 @@ export function createDashboardServer(
       `;
 
       const result = await session.run(cypher, params);
-      const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
 
       const links = result.records.map((r) => ({
         url: r.get("url"),
@@ -222,7 +321,7 @@ export function createDashboardServer(
     }
   });
 
-  // Chart image endpoints for Discord embeds
+  // Chart image endpoints
   app.get("/api/charts/scores", async (_req, res) => {
     const session = neo4jDriver.session();
     try {
@@ -236,7 +335,6 @@ export function createDashboardServer(
           sum(CASE WHEN l.forgeScore >= 0.10 AND l.forgeScore < 0.25 THEN 1 ELSE 0 END) AS commentary,
           sum(CASE WHEN l.forgeScore < 0.10 THEN 1 ELSE 0 END) AS junk
       `);
-      const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
       const rec = scoreRes.records[0]!;
       const dist = {
         artifact: toNum(rec.get("artifact")),
@@ -263,7 +361,6 @@ export function createDashboardServer(
         MATCH (l:Link) WHERE l.contentType IS NOT NULL
         RETURN l.contentType AS type, count(l) AS count ORDER BY count DESC
       `);
-      const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
       const types = typeRes.records.map((r) => ({
         type: r.get("type") as string,
         count: toNum(r.get("count")),
@@ -286,7 +383,6 @@ export function createDashboardServer(
         RETURN c.name AS name, count(l) AS count
         ORDER BY count DESC LIMIT 10
       `);
-      const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
       const cats = catRes.records.map((r) => ({
         name: r.get("name") as string,
         count: toNum(r.get("count")),

@@ -14,28 +14,83 @@
       color: #dbdee1;
       min-height: 100vh;
     }
-    .header {
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 0;
+      padding: 0 32px;
+      background: #1e1f22;
+      border-bottom: 2px solid #3f4147;
+      overflow-x: auto;
+    }
+    .tab {
+      padding: 10px 20px 8px;
       background: #2b2d31;
-      padding: 20px 32px;
-      border-bottom: 1px solid #3f4147;
+      color: #99aab5;
+      border: 1px solid #3f4147;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      margin-bottom: -2px;
+      transition: background 0.15s, color 0.15s;
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 8px;
     }
-    .header h1 {
-      font-size: 24px;
+    .tab:hover { background: #383a40; color: #dbdee1; }
+    .tab.active {
+      background: #1e1f22;
       color: #ffffff;
+      border-color: #3f4147;
+      border-bottom: 2px solid #1e1f22;
+      font-weight: 600;
     }
+    .tab .avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #5865f2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .tab .avatar img { width: 100%; height: 100%; border-radius: 50%; }
+    .tab .link-count {
+      background: #383a40;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #99aab5;
+    }
+    .tab.active .link-count { background: #5865f233; color: #5865f2; }
+
+    /* Header stats */
+    .header {
+      background: #2b2d31;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid #3f4147;
+    }
+    .header h1 { font-size: 20px; color: #ffffff; }
     .header .stat {
       background: #383a40;
-      padding: 8px 16px;
+      padding: 6px 14px;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13px;
     }
-    .header .stat strong {
-      color: #5865f2;
-      font-size: 18px;
-    }
+    .header .stat strong { color: #5865f2; font-size: 16px; }
+
+    /* Main grid */
     .main {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -50,11 +105,7 @@
       padding: 20px;
       border: 1px solid #3f4147;
     }
-    .card h2 {
-      font-size: 16px;
-      color: #ffffff;
-      margin-bottom: 12px;
-    }
+    .card h2 { font-size: 16px; color: #ffffff; margin-bottom: 12px; }
     .card.full { grid-column: 1 / -1; }
     .graph-container {
       grid-column: 1 / -1;
@@ -66,13 +117,21 @@
     .chart-wrap { position: relative; width: 100%; max-height: 300px; }
     .chart-wrap canvas { width: 100% !important; height: auto !important; }
 
-    /* Link table */
-    .table-controls {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
+    /* Graph view tabs */
+    .view-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .view-btn {
+      background: #383a40;
+      border: 1px solid #4f545c;
+      color: #99aab5;
+      padding: 5px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
     }
+    .view-btn.active { background: #5865f2; color: #ffffff; border-color: #5865f2; }
+
+    /* Link table */
+    .table-controls { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
     .table-controls select, .table-controls input {
       background: #383a40;
       border: 1px solid #4f545c;
@@ -81,44 +140,22 @@
       border-radius: 6px;
       font-size: 13px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
-      text-align: left;
-      padding: 8px 12px;
-      border-bottom: 2px solid #3f4147;
-      color: #99aab5;
-      font-weight: 600;
-      cursor: pointer;
-      user-select: none;
+      text-align: left; padding: 8px 12px; border-bottom: 2px solid #3f4147;
+      color: #99aab5; font-weight: 600; cursor: pointer; user-select: none;
     }
     th:hover { color: #ffffff; }
-    td {
-      padding: 8px 12px;
-      border-bottom: 1px solid #3f4147;
-    }
-    td a {
-      color: #5865f2;
-      text-decoration: none;
-    }
+    td { padding: 8px 12px; border-bottom: 1px solid #3f4147; }
+    td a { color: #5865f2; text-decoration: none; }
     td a:hover { text-decoration: underline; }
     .score-bar {
-      display: inline-block;
-      height: 6px;
-      border-radius: 3px;
-      margin-right: 6px;
-      vertical-align: middle;
+      display: inline-block; height: 6px; border-radius: 3px;
+      margin-right: 6px; vertical-align: middle;
     }
     .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
     }
     .badge-tool { background: #5865f233; color: #5865f2; }
     .badge-tutorial { background: #57f28733; color: #57f287; }
@@ -127,49 +164,29 @@
     .badge-reference { background: #99aab533; color: #99aab5; }
     .badge-commentary { background: #ed424533; color: #ed4245; }
 
-    /* D3 tooltip */
+    /* Tooltip */
     .tooltip {
-      position: absolute;
-      background: #383a40;
-      border: 1px solid #4f545c;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s;
-      max-width: 350px;
-      z-index: 10;
+      position: absolute; background: #383a40; border: 1px solid #4f545c;
+      border-radius: 8px; padding: 10px 14px; font-size: 13px;
+      pointer-events: none; opacity: 0; transition: opacity 0.15s;
+      max-width: 350px; z-index: 10;
     }
     .tooltip .tt-title { color: #ffffff; font-weight: 600; margin-bottom: 4px; }
     .tooltip .tt-domain { color: #99aab5; font-size: 12px; }
     .tooltip .tt-score { color: #5865f2; margin-top: 4px; }
-
-    /* Tab system for graph */
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .tab-btn {
-      background: #383a40;
-      border: 1px solid #4f545c;
-      color: #99aab5;
-      padding: 6px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .tab-btn.active {
-      background: #5865f2;
-      color: #ffffff;
-      border-color: #5865f2;
-    }
   </style>
 </head>
 <body>
+  <!-- User tabs -->
+  <div class="tab-bar" id="tab-bar">
+    <div class="tab active" data-user="">
+      <span class="avatar">*</span>
+      All
+    </div>
+  </div>
+
   <div class="header">
-    <h1>Link Forge</h1>
+    <h1 id="header-title">Link Forge</h1>
     <div class="stat" id="stat-links"><strong>-</strong> links</div>
     <div class="stat" id="stat-categories"><strong>-</strong> categories</div>
     <div class="stat" id="stat-tools"><strong>-</strong> tools</div>
@@ -177,31 +194,24 @@
   </div>
 
   <div class="main">
-    <!-- Score Distribution Chart -->
     <div class="card">
       <h2>Forge Score Distribution</h2>
       <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
     </div>
-
-    <!-- Content Type Chart -->
     <div class="card">
       <h2>Content Types</h2>
       <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
     </div>
-
-    <!-- Force-directed Graph -->
     <div class="card full graph-container">
       <h2>Knowledge Graph</h2>
-      <div class="tabs">
-        <button class="tab-btn active" data-view="all">All Edges</button>
-        <button class="tab-btn" data-view="links_to">LINKS_TO Only</button>
-        <button class="tab-btn" data-view="categories">Categories Only</button>
+      <div class="view-tabs">
+        <button class="view-btn active" data-view="all">All Edges</button>
+        <button class="view-btn" data-view="links_to">LINKS_TO Only</button>
+        <button class="view-btn" data-view="categories">Categories Only</button>
       </div>
       <div class="tooltip" id="tooltip"></div>
       <svg id="graph"></svg>
     </div>
-
-    <!-- Links Table -->
     <div class="card full">
       <h2>All Links</h2>
       <div class="table-controls">
@@ -232,14 +242,20 @@
   </div>
 
 <script>
+let currentUser = ''; // '' = all users
+let scoreChart = null;
+let typeChart = null;
+let simulation = null;
+
 const SCORE_COLORS = {
-  artifact: '#5865f2',
-  guide: '#57f287',
-  analysis: '#fee75c',
-  pointer: '#eb459e',
-  commentary: '#ed4245',
-  junk: '#99aab5',
+  artifact: '#5865f2', guide: '#57f287', analysis: '#fee75c',
+  pointer: '#eb459e', commentary: '#ed4245', junk: '#99aab5',
 };
+const TYPE_COLORS = {
+  tool: '#5865f2', tutorial: '#57f287', pattern: '#fee75c',
+  analysis: '#eb459e', reference: '#99aab5', commentary: '#ed4245',
+};
+const USER_COLORS = ['#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#f0b232', '#9b59b6', '#1abc9c'];
 
 function scoreColor(s) {
   if (s >= 0.85) return SCORE_COLORS.artifact;
@@ -250,9 +266,64 @@ function scoreColor(s) {
   return SCORE_COLORS.junk;
 }
 
+function qs(params) {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) { if (v) p.set(k, v); }
+  return p.toString() ? '?' + p.toString() : '';
+}
+
+// --- Tab system ---
+async function loadUsers() {
+  const res = await fetch('/api/users');
+  const data = await res.json();
+  const bar = document.getElementById('tab-bar');
+
+  data.users.forEach((u, i) => {
+    const tab = document.createElement('div');
+    tab.className = 'tab';
+    tab.dataset.user = u.discordId;
+
+    const avatar = document.createElement('span');
+    avatar.className = 'avatar';
+    if (u.avatarUrl) {
+      avatar.innerHTML = `<img src="${u.avatarUrl}" alt="">`;
+    } else {
+      avatar.textContent = u.displayName.charAt(0).toUpperCase();
+      avatar.style.background = USER_COLORS[i % USER_COLORS.length];
+    }
+
+    const name = document.createTextNode(u.displayName);
+    const count = document.createElement('span');
+    count.className = 'link-count';
+    count.textContent = u.linkCount;
+
+    tab.appendChild(avatar);
+    tab.appendChild(name);
+    tab.appendChild(count);
+    bar.appendChild(tab);
+  });
+
+  // Click handler for all tabs
+  bar.addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentUser = tab.dataset.user;
+
+    const name = currentUser ? tab.textContent.trim().replace(/\d+$/, '').trim() : 'Link Forge';
+    document.getElementById('header-title').textContent = name;
+
+    // Reload everything for this user
+    loadStats();
+    loadLinks();
+    loadGraph();
+  });
+}
+
 // --- Stats + Charts ---
 async function loadStats() {
-  const res = await fetch('/api/stats');
+  const res = await fetch('/api/stats' + qs({ user: currentUser }));
   const data = await res.json();
 
   document.querySelector('#stat-links strong').textContent = data.counts.links;
@@ -260,17 +331,20 @@ async function loadStats() {
   document.querySelector('#stat-tools strong').textContent = data.counts.tools;
   document.querySelector('#stat-avg strong').textContent = data.avgScore;
 
-  // Score distribution chart
+  // Destroy old charts
+  if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+  if (typeChart) { typeChart.destroy(); typeChart = null; }
+
   const sd = data.scoreDistribution;
-  new Chart(document.getElementById('scoreChart'), {
+  scoreChart = new Chart(document.getElementById('scoreChart'), {
     type: 'bar',
     data: {
-      labels: ['Artifact (0.85+)', 'Guide (0.65-0.84)', 'Analysis (0.45-0.64)', 'Pointer (0.25-0.44)', 'Commentary (0.10-0.24)', 'Junk (<0.10)'],
+      labels: ['Artifact (0.85+)', 'Guide (0.65-0.84)', 'Analysis (0.45-0.64)',
+               'Pointer (0.25-0.44)', 'Commentary (0.10-0.24)', 'Junk (<0.10)'],
       datasets: [{
         data: [sd.artifact, sd.guide, sd.analysis, sd.pointer, sd.commentary, sd.junk],
         backgroundColor: Object.values(SCORE_COLORS),
-        borderWidth: 0,
-        borderRadius: 4,
+        borderWidth: 0, borderRadius: 4,
       }]
     },
     options: {
@@ -283,17 +357,14 @@ async function loadStats() {
     }
   });
 
-  // Content type doughnut
-  const typeColors = { tool: '#5865f2', tutorial: '#57f287', pattern: '#fee75c', analysis: '#eb459e', reference: '#99aab5', commentary: '#ed4245' };
-  new Chart(document.getElementById('typeChart'), {
+  typeChart = new Chart(document.getElementById('typeChart'), {
     type: 'doughnut',
     data: {
       labels: data.contentTypes.map(t => t.type),
       datasets: [{
         data: data.contentTypes.map(t => t.count),
-        backgroundColor: data.contentTypes.map(t => typeColors[t.type] || '#99aab5'),
-        borderWidth: 2,
-        borderColor: '#2b2d31',
+        backgroundColor: data.contentTypes.map(t => TYPE_COLORS[t.type] || '#99aab5'),
+        borderWidth: 2, borderColor: '#2b2d31',
       }]
     },
     options: {
@@ -310,7 +381,7 @@ let sortKey = 'forgeScore';
 let sortAsc = false;
 
 async function loadLinks() {
-  const res = await fetch('/api/links?limit=200');
+  const res = await fetch('/api/links' + qs({ user: currentUser, limit: '200' }));
   const data = await res.json();
   allLinks = data.links;
   renderTable();
@@ -330,15 +401,14 @@ function renderTable() {
     return sortAsc ? cmp : -cmp;
   });
 
-  const tbody = document.getElementById('link-table');
-  tbody.innerHTML = filtered.map(l => `
+  document.getElementById('link-table').innerHTML = filtered.map(l => `
     <tr>
       <td>
         <span class="score-bar" style="width:${Math.round(l.forgeScore * 60)}px;background:${scoreColor(l.forgeScore)}"></span>
         ${l.forgeScore.toFixed(2)}
       </td>
       <td><span class="badge badge-${l.contentType}">${l.contentType}</span></td>
-      <td><a href="${l.url}" target="_blank">${l.title || l.url}</a></td>
+      <td><a href="${l.url}" target="_blank">${(l.title || l.url).slice(0, 80)}</a></td>
       <td>${l.domain}</td>
       <td>${l.savedAt ? new Date(l.savedAt).toLocaleDateString() : '-'}</td>
     </tr>
@@ -358,46 +428,59 @@ document.getElementById('filter-type').addEventListener('change', renderTable);
 
 // --- Force Graph ---
 async function loadGraph() {
-  const res = await fetch('/api/graph');
+  const res = await fetch('/api/graph' + qs({ user: currentUser }));
   const data = await res.json();
+
+  // Clear previous
+  const svgEl = document.getElementById('graph');
+  svgEl.innerHTML = '';
+  if (simulation) { simulation.stop(); simulation = null; }
 
   const container = document.querySelector('.graph-container');
   const svg = d3.select('#graph');
   const tooltip = document.getElementById('tooltip');
   const width = container.clientWidth;
   const height = 560;
-
   svg.attr('viewBox', [0, 0, width, height]);
 
-  let currentView = 'all';
-
-  const simulation = d3.forceSimulation(data.nodes)
+  simulation = d3.forceSimulation(data.nodes)
     .force('link', d3.forceLink(data.edges).id(d => d.id).distance(80))
     .force('charge', d3.forceManyBody().strength(-120))
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force('collision', d3.forceCollide(12));
 
   const g = svg.append('g');
-
-  // Zoom
   svg.call(d3.zoom().scaleExtent([0.2, 5]).on('zoom', e => g.attr('transform', e.transform)));
 
   const link = g.append('g')
     .selectAll('line')
     .data(data.edges)
     .join('line')
-    .attr('stroke', d => d.type === 'LINKS_TO' ? '#5865f2' : '#3f4147')
-    .attr('stroke-width', d => d.type === 'LINKS_TO' ? 2 : 1)
-    .attr('stroke-opacity', 0.6);
+    .attr('stroke', d => {
+      if (d.type === 'LINKS_TO') return '#5865f2';
+      if (d.type === 'SHARED_BY') return '#57f287';
+      return '#3f4147';
+    })
+    .attr('stroke-width', d => d.type === 'LINKS_TO' ? 2 : d.type === 'SHARED_BY' ? 1.5 : 1)
+    .attr('stroke-opacity', 0.6)
+    .attr('stroke-dasharray', d => d.type === 'SHARED_BY' ? '4,3' : null);
 
   const node = g.append('g')
     .selectAll('circle')
     .data(data.nodes)
     .join('circle')
-    .attr('r', d => d.nodeType === 'category' ? 5 : 4 + d.forgeScore * 8)
-    .attr('fill', d => d.nodeType === 'category' ? '#fee75c' : scoreColor(d.forgeScore))
-    .attr('stroke', '#1e1f22')
-    .attr('stroke-width', 1)
+    .attr('r', d => {
+      if (d.nodeType === 'user') return 10;
+      if (d.nodeType === 'category') return 5;
+      return 4 + d.forgeScore * 8;
+    })
+    .attr('fill', d => {
+      if (d.nodeType === 'user') return '#57f287';
+      if (d.nodeType === 'category') return '#fee75c';
+      return scoreColor(d.forgeScore);
+    })
+    .attr('stroke', d => d.nodeType === 'user' ? '#fff' : '#1e1f22')
+    .attr('stroke-width', d => d.nodeType === 'user' ? 2 : 1)
     .call(d3.drag()
       .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
       .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
@@ -405,9 +488,13 @@ async function loadGraph() {
     )
     .on('mouseover', (e, d) => {
       tooltip.style.opacity = 1;
-      tooltip.innerHTML = d.nodeType === 'category'
-        ? `<div class="tt-title">${d.title}</div><div class="tt-domain">Category</div>`
-        : `<div class="tt-title">${d.title || d.id}</div><div class="tt-domain">${d.domain}</div><div class="tt-score">Forge: ${d.forgeScore.toFixed(2)} | ${d.contentType}</div>`;
+      if (d.nodeType === 'user') {
+        tooltip.innerHTML = `<div class="tt-title">${d.title}</div><div class="tt-domain">User</div>`;
+      } else if (d.nodeType === 'category') {
+        tooltip.innerHTML = `<div class="tt-title">${d.title}</div><div class="tt-domain">Category</div>`;
+      } else {
+        tooltip.innerHTML = `<div class="tt-title">${d.title || d.id}</div><div class="tt-domain">${d.domain}</div><div class="tt-score">Forge: ${d.forgeScore.toFixed(2)} | ${d.contentType}</div>`;
+      }
       tooltip.style.left = (e.offsetX + 15) + 'px';
       tooltip.style.top = (e.offsetY - 10) + 'px';
     })
@@ -416,38 +503,52 @@ async function loadGraph() {
       if (d.nodeType === 'link') window.open(d.id, '_blank');
     });
 
+  // User node labels
+  g.append('g')
+    .selectAll('text')
+    .data(data.nodes.filter(d => d.nodeType === 'user'))
+    .join('text')
+    .attr('font-size', 11)
+    .attr('fill', '#57f287')
+    .attr('text-anchor', 'middle')
+    .attr('dy', -14)
+    .text(d => d.title);
+
   simulation.on('tick', () => {
     link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
     node.attr('cx', d => d.x).attr('cy', d => d.y);
+    g.selectAll('text')
+      .attr('x', d => d.x).attr('y', d => d.y);
   });
 
-  // Tab filtering
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  // View tab filtering
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentView = btn.dataset.view;
+      const view = btn.dataset.view;
 
       link.attr('stroke-opacity', d => {
-        if (currentView === 'all') return 0.6;
-        if (currentView === 'links_to') return d.type === 'LINKS_TO' ? 0.8 : 0.05;
+        if (view === 'all') return 0.6;
+        if (view === 'links_to') return d.type === 'LINKS_TO' ? 0.8 : 0.05;
         return d.type === 'CATEGORIZED_IN' ? 0.6 : 0.05;
       });
-
       node.attr('opacity', d => {
-        if (currentView === 'all') return 1;
-        if (currentView === 'links_to') return d.nodeType === 'link' ? 1 : 0.15;
+        if (view === 'all') return 1;
+        if (view === 'links_to') return d.nodeType === 'link' ? 1 : 0.15;
         return 1;
       });
-    });
+    };
   });
 }
 
 // Boot
-loadStats();
-loadLinks();
-loadGraph();
+loadUsers().then(() => {
+  loadStats();
+  loadLinks();
+  loadGraph();
+});
 </script>
 </body>
 </html>
