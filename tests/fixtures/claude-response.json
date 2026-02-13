@@ -1,0 +1,15 @@
+{
+  "category": "LLM Frameworks",
+  "tags": ["rag", "langchain", "neo4j", "vector-search", "tutorial"],
+  "tools": [
+    { "name": "LangChain", "url": "https://langchain.com" },
+    { "name": "Neo4j", "url": "https://neo4j.com" }
+  ],
+  "technologies": ["Python", "Neo4j", "OpenAI"],
+  "summary": "Tutorial on building RAG pipelines combining LangChain document processing with Neo4j graph database for enhanced retrieval.",
+  "quality": "high",
+  "forge_score": 0.72,
+  "content_type": "tutorial",
+  "purpose": "Build RAG pipelines using LangChain with Neo4j as the graph-backed retrieval layer",
+  "integration_type": "guide"
+}

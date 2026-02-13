@@ -1,0 +1,7 @@
+#!/bin/bash
+echo "Running typecheck..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "TypeScript errors found. Commit aborted."
+  exit 1
+fi

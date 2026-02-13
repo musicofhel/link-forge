@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Building RAG Pipelines with LangChain and Neo4j</title>
+  <meta name="description" content="A comprehensive guide to building Retrieval-Augmented Generation pipelines using LangChain and Neo4j graph database.">
+  <meta property="og:description" content="Learn how to combine LangChain with Neo4j for powerful RAG applications.">
+</head>
+<body>
+  <nav><a href="/">Home</a></nav>
+  <article>
+    <h1>Building RAG Pipelines with LangChain and Neo4j</h1>
+    <p>Retrieval-Augmented Generation (RAG) has become the standard approach for building LLM applications that need access to custom knowledge bases.</p>
+    <p>In this tutorial, we'll explore how to combine LangChain's document processing capabilities with Neo4j's graph database to create a powerful RAG pipeline.</p>
+    <h2>Prerequisites</h2>
+    <ul>
+      <li>Python 3.11+</li>
+      <li>LangChain 0.2</li>
+      <li>Neo4j 5 Community Edition</li>
+      <li>An OpenAI API key</li>
+    </ul>
+    <h2>Setting Up the Graph</h2>
+    <p>First, we need to set up our Neo4j instance and create the vector index for storing embeddings.</p>
+    <pre><code>from langchain_neo4j import Neo4jVector</code></pre>
+    <p>The key insight is that graph relationships provide additional context that pure vector similarity misses.</p>
+  </article>
+  <footer><p>Copyright 2025</p></footer>
+</body>
+</html>
