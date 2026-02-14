@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import neo4j from "neo4j-driver";
 import type { Driver } from "neo4j-driver";
 import type pino from "pino";
+import type { EmbeddingService } from "../embeddings/index.js";
+import { askQuestion } from "../rag/query.js";
 import { generateScoreDistributionChart, generateContentTypeChart, generateTopCategoriesChart } from "./charts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,8 +29,10 @@ export interface DashboardServer {
 export function createDashboardServer(
   neo4jDriver: Driver,
   logger: pino.Logger,
+  embeddings?: EmbeddingService,
 ): DashboardServer {
   const app = express();
+  app.use(express.json());
   let server: ReturnType<typeof app.listen> | null = null;
 
   const htmlPath = resolveHtml();
@@ -564,6 +568,29 @@ export function createDashboardServer(
       res.status(500).json({ error: "Chart generation failed" });
     } finally {
       await session.close();
+    }
+  });
+
+  // RAG query endpoint
+  app.post("/api/ask", async (req, res) => {
+    if (!embeddings) {
+      res.status(503).json({ error: "Embedding service not available" });
+      return;
+    }
+
+    const question = (req.body as { question?: string })?.question;
+    if (!question || typeof question !== "string" || question.trim().length === 0) {
+      res.status(400).json({ error: "Missing or empty question" });
+      return;
+    }
+
+    try {
+      logger.info({ question: question.slice(0, 100) }, "RAG query from dashboard");
+      const result = await askQuestion(question.trim(), neo4jDriver, embeddings, logger);
+      res.json(result);
+    } catch (err) {
+      logger.error({ err }, "RAG query failed");
+      res.status(500).json({ error: "Query failed — check server logs" });
     }
   });
 

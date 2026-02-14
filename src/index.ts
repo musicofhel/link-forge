@@ -40,9 +40,9 @@ async function main() {
   const queueClient = new QueueClient(config.sqlite.path);
   logger.info("SQLite queue initialized");
 
-  // 5. Start dashboard server
+  // 5. Start dashboard server (with embeddings for RAG)
   const dashboardPort = parseInt(process.env["DASHBOARD_PORT"] ?? "3848");
-  const dashboard = createDashboardServer(graphClient.driver, logger);
+  const dashboard = createDashboardServer(graphClient.driver, logger, embeddings);
   dashboard.start(dashboardPort);
 
   // 6. Detect ngrok public URL if running
@@ -63,6 +63,7 @@ async function main() {
   // 7. Start Discord bot (with slash command deps)
   const bot = createBot(config.discord, queueClient, logger, {
     neo4jDriver: graphClient.driver,
+    embeddings,
     dashboardPort,
     dashboardUrl,
   });

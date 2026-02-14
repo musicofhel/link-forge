@@ -11,6 +11,7 @@ import {
 import type { ChatInputCommandInteraction } from "discord.js";
 import type pino from "pino";
 import type { Driver } from "neo4j-driver";
+import type { EmbeddingService } from "../embeddings/index.js";
 import type { QueueClient } from "../queue/index.js";
 import { enqueue } from "../queue/index.js";
 import { extractUrls } from "./url-extractor.js";
@@ -19,6 +20,7 @@ import {
   generateScoreDistributionChart,
   generateContentTypeChart,
 } from "../dashboard/charts.js";
+import { askQuestion } from "../rag/query.js";
 
 export interface BotConfig {
   token: string;
@@ -28,6 +30,7 @@ export interface BotConfig {
 
 export interface SlashCommandDeps {
   neo4jDriver: Driver;
+  embeddings: EmbeddingService;
   dashboardPort: number;
   dashboardUrl?: string; // Public URL (ngrok) — falls back to localhost
 }
@@ -67,6 +70,12 @@ export function createBot(
             )
             .addSubcommand((sub) =>
               sub.setName("graph").setDescription("Get link to the interactive knowledge graph dashboard"),
+            )
+            .addSubcommand((sub) =>
+              sub.setName("ask").setDescription("Ask a question about the community's collective knowledge")
+                .addStringOption((opt) =>
+                  opt.setName("question").setDescription("Your question").setRequired(true),
+                ),
             ),
         ];
 
@@ -200,6 +209,36 @@ export function createBot(
           .setColor(0x5865f2);
 
         await cmd.editReply({ embeds: [embed] });
+      } else if (sub === "ask") {
+        const question = cmd.options.getString("question", true);
+
+        try {
+          const result = await askQuestion(question, slashDeps.neo4jDriver, slashDeps.embeddings, logger);
+
+          // Truncate answer for Discord (2048 char embed limit)
+          const truncatedAnswer = result.answer.length > 1800
+            ? result.answer.slice(0, 1800) + "\n\n*...truncated. View full answer on the dashboard.*"
+            : result.answer;
+
+          const sourcesText = result.sources.slice(0, 5).map(s =>
+            `[\`${s.forgeScore.toFixed(2)}\`] [${(s.title || s.url).slice(0, 50)}](${s.url})`,
+          ).join("\n");
+
+          const embed = new EmbedBuilder()
+            .setTitle(`\u{1f50d} ${question.slice(0, 200)}`)
+            .setDescription(truncatedAnswer)
+            .setColor(0x5865f2)
+            .setFooter({ text: `Searched ${result.context.linksSearched} links across ${result.context.usersReferenced} users` });
+
+          if (sourcesText) {
+            embed.addFields({ name: "Top Sources", value: sourcesText });
+          }
+
+          await cmd.editReply({ embeds: [embed] });
+        } catch (err) {
+          logger.error({ err, question }, "RAG query failed in Discord");
+          await cmd.editReply({ content: "Sorry, the query failed. Claude might be busy. Try again in a moment." });
+        }
       }
     } catch (err) {
       logger.error({ err, sub }, "Slash command error");
