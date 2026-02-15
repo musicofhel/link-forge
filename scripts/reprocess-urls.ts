@@ -17,12 +17,14 @@ async function main() {
   const args = process.argv.slice(2);
   const batchSize = getArg(args, "--batch-size", 10);
   const skip = getArg(args, "--skip", 0);
+  const limit = getArg(args, "--limit", 0); // 0 = no limit
   const dryRun = args.includes("--dry-run");
 
   const config = loadConfig();
-  const logger = createLogger("info", "reprocess-urls");
+  const workerId = skip > 0 ? `worker-${skip}` : "reprocess-urls";
+  const logger = createLogger("info", workerId);
 
-  logger.info({ batchSize, skip, dryRun }, "Starting URL reprocessing");
+  logger.info({ batchSize, skip, limit, dryRun }, "Starting URL reprocessing");
 
   const graphClient = await createGraphClient(
     config.neo4j.uri, config.neo4j.user, config.neo4j.password, logger,
@@ -30,7 +32,7 @@ async function main() {
 
   const embeddings = await createEmbeddingService(logger);
 
-  await reprocessUrls(graphClient.driver, embeddings, config.processor.claudeTimeoutMs, logger, batchSize, skip, dryRun);
+  await reprocessUrls(graphClient.driver, embeddings, config.processor.claudeTimeoutMs, logger, batchSize, skip, limit, dryRun);
 
   await graphClient.close();
   logger.info("Done!");
@@ -49,20 +51,21 @@ async function reprocessUrls(
   logger: ReturnType<typeof createLogger>,
   batchSize: number,
   skip: number,
+  limit: number,
   dryRun: boolean,
 ) {
   const session = driver.session();
   try {
-    const result = await session.run(
-      `MATCH (l:Link)
+    const cypher = `MATCH (l:Link)
        WHERE l.domain <> 'local-file' AND l.content IS NOT NULL
        RETURN l.url AS url, l.title AS title, l.content AS content,
               l.description AS desc, l.domain AS domain,
               l.forgeScore AS oldScore, l.contentType AS oldType
        ORDER BY l.savedAt ASC
-       SKIP $skip`,
-      { skip: neo4j.int(skip) },
-    );
+       SKIP $skip` + (limit > 0 ? ` LIMIT $limit` : "");
+    const params: Record<string, unknown> = { skip: neo4j.int(skip) };
+    if (limit > 0) params["limit"] = neo4j.int(limit);
+    const result = await session.run(cypher, params);
 
     const total = result.records.length;
     logger.info({ total, skip }, "Found URL links to reprocess");
