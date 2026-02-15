@@ -1,8 +1,11 @@
+import { unlink } from "node:fs/promises";
 import type pino from "pino";
 import type { QueueClient } from "../queue/index.js";
 import type { EmbeddingService } from "../embeddings/index.js";
 import type { DiscordNotifier } from "./discord-notifier.js";
 import { scrapeUrl } from "./scraper.js";
+import { extractTextFromFile } from "../extractor/index.js";
+import { getCloudDownloadUrl, downloadCloudFile } from "./cloud-download.js";
 import { categorizeWithClaude } from "./claude-cli.js";
 import {
   dequeue,
@@ -24,7 +27,7 @@ import {
   linksTo,
   sharedBy,
 } from "../graph/relationships.js";
-import { createUser } from "../graph/repositories/user.repository.js";
+import { createUser, getUserInterests } from "../graph/repositories/user.repository.js";
 import { updateLinkCount } from "../graph/repositories/category.repository.js";
 import { extractUrlsFromContent } from "./link-extractor.js";
 import type { Driver } from "neo4j-driver";
@@ -64,12 +67,48 @@ export function createProcessor(
 
     const session = neo4jDriver.session();
     try {
-      // Step 1: Scrape
-      log.debug("Scraping...");
-      const scraped = await scrapeUrl(item.url, options.scrapeTimeoutMs, log);
+      // Step 1: Extract content (file, cloud link, or URL)
+      let scraped;
+      let cloudFilePath: string | null = null;
+      if (item.source_type === "file" && item.file_path) {
+        log.debug({ fileName: item.file_name }, "Extracting text from file");
+        scraped = await extractTextFromFile(item.file_path, log);
+        // Use original filename as title (extractor sees hash-based path)
+        if (item.file_name) {
+          const cleanName = item.file_name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+          if (cleanName) scraped.title = cleanName;
+        }
+      } else {
+        // Check if URL is a cloud storage share link (Google Drive, Dropbox)
+        const cloudInfo = getCloudDownloadUrl(item.url);
+        if (cloudInfo) {
+          log.debug({ source: cloudInfo.source }, "Detected cloud file link, downloading...");
+          const downloaded = await downloadCloudFile(
+            item.url, cloudInfo.downloadUrl, "./data/uploads", log,
+          );
+          if (downloaded) {
+            scraped = await extractTextFromFile(downloaded.filePath, log);
+            cloudFilePath = downloaded.filePath;
+          } else {
+            // Not a supported file type — fall back to normal scraping
+            log.debug("Cloud link is not a document, scraping as URL");
+            scraped = await scrapeUrl(item.url, options.scrapeTimeoutMs, log);
+          }
+        } else {
+          log.debug("Scraping URL...");
+          scraped = await scrapeUrl(item.url, options.scrapeTimeoutMs, log);
+        }
+      }
 
-      // Step 2: Categorize with Claude
-      log.debug("Categorizing...");
+      // Step 2: Look up user interests for personalized categorization
+      let userInterests: string[] = [];
+      if (item.discord_author_id) {
+        userInterests = await getUserInterests(session, item.discord_author_id);
+      }
+
+      // Step 3: Categorize with Claude
+      const isDocument = item.source_type === "file" || cloudFilePath !== null;
+      log.debug({ isDocument, interests: userInterests.length }, "Categorizing...");
       const categorization = await categorizeWithClaude(
         scraped.title,
         scraped.description,
@@ -77,32 +116,30 @@ export function createProcessor(
         item.url,
         options.claudeTimeoutMs,
         log,
+        isDocument,
+        userInterests,
       );
 
-      // Step 3: Check minimum forge_score threshold
-      if (categorization.forge_score < 0.10) {
-        log.warn(
-          { forgeScore: categorization.forge_score, title: scraped.title },
-          "Skipping low-relevance link (forge_score < 0.10)",
-        );
-        markCompleted(queueClient.db, item.id);
-        return true;
-      }
-
-      // Step 4: Generate embedding
+      // Step 3: Generate embedding (include key concepts for documents)
       log.debug("Embedding...");
-      const textForEmbedding = `${scraped.title}. ${scraped.description}. ${categorization.summary}`;
+      const conceptsStr = categorization.key_concepts.length > 0
+        ? `. Key concepts: ${categorization.key_concepts.join(", ")}`
+        : "";
+      const textForEmbedding = `${scraped.title}. ${scraped.description}. ${categorization.summary}${conceptsStr}`;
       const embedding = await embeddings.embed(textForEmbedding);
 
-      // Step 5: Store in Neo4j
+      // Step 4: Store in Neo4j
       log.debug("Storing in graph...");
+
+      // Documents get more stored content (10k vs 5k for URLs)
+      const maxStoredContent = isDocument ? 10000 : 5000;
 
       // Create link node
       await createLink(session, {
         url: item.url,
         title: scraped.title,
         description: categorization.summary,
-        content: scraped.content.slice(0, 5000),
+        content: scraped.content.slice(0, maxStoredContent),
         embedding,
         domain: scraped.domain,
         savedAt: new Date().toISOString(),
@@ -112,14 +149,20 @@ export function createProcessor(
         purpose: categorization.purpose,
         integrationType: categorization.integration_type,
         quality: categorization.quality,
+        keyConcepts: categorization.key_concepts,
+        authors: categorization.authors,
+        keyTakeaways: categorization.key_takeaways,
+        difficulty: categorization.difficulty,
       });
 
       // Create category + relationship
       await createCategory(session, categorization.category, "");
       await categorizeLink(session, item.url, categorization.category);
 
-      // Create tags + relationships
-      for (const tagName of categorization.tags) {
+      // Create tags + relationships (include key_concepts as tags for discoverability)
+      const allTags = [...categorization.tags, ...categorization.key_concepts];
+      const uniqueTags = [...new Set(allTags.map(t => t.toLowerCase().replace(/\s+/g, "-")))];
+      for (const tagName of uniqueTags) {
         await createTag(session, tagName);
         await tagLink(session, item.url, tagName);
       }
@@ -188,9 +231,24 @@ export function createProcessor(
         "Link processed successfully",
       );
 
-      // Notify Discord (skip for auto-discovered links with synthetic IDs)
-      const isAutoDiscovered = item.discord_message_id.startsWith("auto:") || item.discord_message_id.startsWith("backfill:");
-      if (notifier && !isAutoDiscovered) {
+      // Clean up temp files after successful processing
+      const tempFile = item.source_type === "file" ? item.file_path : cloudFilePath;
+      if (tempFile) {
+        try {
+          await unlink(tempFile);
+          log.debug({ filePath: tempFile }, "Deleted processed temp file");
+        } catch {
+          log.warn({ filePath: tempFile }, "Could not delete temp file");
+        }
+      }
+
+      // Notify Discord (skip for auto-discovered links, backfills, and gdrive items)
+      const isSynthetic =
+        item.discord_message_id.startsWith("auto:") ||
+        item.discord_message_id.startsWith("backfill:") ||
+        item.discord_message_id.startsWith("gdrive:") ||
+        item.discord_message_id.startsWith("inbox:");
+      if (notifier && !isSynthetic) {
         await notifier.notifySuccess(item.discord_channel_id, item.discord_message_id);
       }
 
@@ -200,8 +258,12 @@ export function createProcessor(
       log.error({ err: errorMsg }, "Failed to process link");
       markFailed(queueClient.db, item.id, errorMsg);
 
-      const isAutoDiscovered = item.discord_message_id.startsWith("auto:") || item.discord_message_id.startsWith("backfill:");
-      if (notifier && !isAutoDiscovered) {
+      const isSyntheticErr =
+        item.discord_message_id.startsWith("auto:") ||
+        item.discord_message_id.startsWith("backfill:") ||
+        item.discord_message_id.startsWith("gdrive:") ||
+        item.discord_message_id.startsWith("inbox:");
+      if (notifier && !isSyntheticErr) {
         await notifier.notifyFailure(item.discord_channel_id, item.discord_message_id);
       }
 

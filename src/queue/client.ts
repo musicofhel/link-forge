@@ -1,6 +1,15 @@
 import Database from "better-sqlite3";
 import type BetterSqlite3 from "better-sqlite3";
-import { CREATE_QUEUE_TABLE, MIGRATE_ADD_PARENT_URL, MIGRATE_ADD_AUTHOR, MIGRATE_ADD_AUTHOR_NAME } from "./schema.js";
+import {
+  CREATE_QUEUE_TABLE,
+  MIGRATE_ADD_PARENT_URL,
+  MIGRATE_ADD_AUTHOR,
+  MIGRATE_ADD_AUTHOR_NAME,
+  MIGRATE_ADD_SOURCE_TYPE,
+  MIGRATE_ADD_FILE_NAME,
+  MIGRATE_ADD_FILE_PATH,
+  MIGRATE_ADD_FILE_HASH,
+} from "./schema.js";
 
 export class QueueClient {
   readonly db: BetterSqlite3.Database;
@@ -24,6 +33,18 @@ export class QueueClient {
     }
     if (!colNames.has("discord_author_name")) {
       this.db.exec(MIGRATE_ADD_AUTHOR_NAME);
+    }
+    if (!colNames.has("source_type")) {
+      this.db.exec(MIGRATE_ADD_SOURCE_TYPE);
+    }
+    if (!colNames.has("file_name")) {
+      this.db.exec(MIGRATE_ADD_FILE_NAME);
+    }
+    if (!colNames.has("file_path")) {
+      this.db.exec(MIGRATE_ADD_FILE_PATH);
+    }
+    if (!colNames.has("file_hash")) {
+      this.db.exec(MIGRATE_ADD_FILE_HASH);
     }
   }
 

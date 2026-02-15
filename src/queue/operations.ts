@@ -20,6 +20,10 @@ export interface QueueRow {
   status: string;
   error: string | null;
   parent_url: string | null;
+  source_type: string;
+  file_name: string | null;
+  file_path: string | null;
+  file_hash: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -137,6 +141,51 @@ export function isUrlQueued(db: BetterSqlite3.Database, url: string): boolean {
     `SELECT 1 FROM queue WHERE url = @url LIMIT 1`,
   ).get({ url }) as { 1: number } | undefined;
   return !!row;
+}
+
+export interface EnqueueFileItem {
+  fileName: string;
+  filePath: string;
+  fileHash: string;
+  discordChannelId: string;
+  discordAuthorId?: string;
+  discordAuthorName?: string;
+  /** Prefix for synthetic message ID: "file" (Discord) or "gdrive" (Drive). */
+  sourcePrefix?: string;
+}
+
+export function enqueueFile(
+  db: BetterSqlite3.Database,
+  item: EnqueueFileItem,
+): number | null {
+  const prefix = item.sourcePrefix ?? "file";
+  const syntheticUrl = `file:///${item.fileHash}/${item.fileName}`;
+  const syntheticMessageId = `${prefix}:${item.fileHash.slice(0, 16)}`;
+
+  const stmt = db.prepare(
+    `INSERT OR IGNORE INTO queue
+       (url, comment, discord_message_id, discord_channel_id,
+        discord_author_id, discord_author_name,
+        source_type, file_name, file_path, file_hash)
+     VALUES
+       (@url, @comment, @messageId, @channelId,
+        @authorId, @authorName,
+        'file', @fileName, @filePath, @fileHash)`,
+  );
+
+  const result = stmt.run({
+    url: syntheticUrl,
+    comment: `Document: ${item.fileName}`,
+    messageId: syntheticMessageId,
+    channelId: item.discordChannelId,
+    authorId: item.discordAuthorId ?? null,
+    authorName: item.discordAuthorName ?? null,
+    fileName: item.fileName,
+    filePath: item.filePath,
+    fileHash: item.fileHash,
+  });
+
+  return result.changes > 0 ? Number(result.lastInsertRowid) : null;
 }
 
 export function getStats(db: BetterSqlite3.Database): QueueStats {

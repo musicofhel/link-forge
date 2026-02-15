@@ -24,3 +24,19 @@ ALTER TABLE queue ADD COLUMN discord_author_id TEXT;
 export const MIGRATE_ADD_AUTHOR_NAME = `
 ALTER TABLE queue ADD COLUMN discord_author_name TEXT;
 `;
+
+export const MIGRATE_ADD_SOURCE_TYPE = `
+ALTER TABLE queue ADD COLUMN source_type TEXT NOT NULL DEFAULT 'url';
+`;
+
+export const MIGRATE_ADD_FILE_NAME = `
+ALTER TABLE queue ADD COLUMN file_name TEXT;
+`;
+
+export const MIGRATE_ADD_FILE_PATH = `
+ALTER TABLE queue ADD COLUMN file_path TEXT;
+`;
+
+export const MIGRATE_ADD_FILE_HASH = `
+ALTER TABLE queue ADD COLUMN file_hash TEXT;
+`;

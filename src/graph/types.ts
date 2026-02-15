@@ -12,6 +12,11 @@ export interface LinkNode {
   purpose: string;
   integrationType: string;
   quality: string;
+  // Document-specific fields (optional)
+  keyConcepts?: string[];
+  authors?: string[];
+  keyTakeaways?: string[];
+  difficulty?: string;
 }
 
 export interface CategoryNode {
@@ -40,6 +45,7 @@ export interface UserNode {
   username: string;
   displayName: string;
   avatarUrl: string;
+  interests?: string[];
 }
 
 export interface SearchResult {

@@ -26,6 +26,19 @@ const configSchema = z.object({
     checkIntervalMs: z.coerce.number().positive().default(3600000),
     splitThreshold: z.coerce.number().positive().default(20),
   }),
+  inbox: z.object({
+    enabled: z.coerce.boolean().default(true),
+    dir: z.string().default("./data/inbox"),
+    pollIntervalMs: z.coerce.number().positive().default(5000),
+    authorName: z.string().default("local"),
+  }),
+  gdrive: z.object({
+    enabled: z.coerce.boolean().default(false),
+    serviceAccountKeyPath: z.string().default(""),
+    sharedFolderId: z.string().default(""),
+    pollIntervalMs: z.coerce.number().positive().default(60000),
+    uploadDir: z.string().default("./data/uploads"),
+  }),
   log: z.object({
     level: z.string().default("info"),
   }),
@@ -56,6 +69,19 @@ function buildRawConfig(): Record<string, unknown> {
     taxonomy: {
       checkIntervalMs: process.env["TAXONOMY_CHECK_INTERVAL_MS"],
       splitThreshold: process.env["TAXONOMY_SPLIT_THRESHOLD"],
+    },
+    inbox: {
+      enabled: process.env["INBOX_ENABLED"],
+      dir: process.env["INBOX_DIR"],
+      pollIntervalMs: process.env["INBOX_POLL_INTERVAL_MS"],
+      authorName: process.env["INBOX_AUTHOR_NAME"],
+    },
+    gdrive: {
+      enabled: process.env["GDRIVE_ENABLED"],
+      serviceAccountKeyPath: process.env["GDRIVE_SERVICE_ACCOUNT_KEY_PATH"],
+      sharedFolderId: process.env["GDRIVE_SHARED_FOLDER_ID"],
+      pollIntervalMs: process.env["GDRIVE_POLL_INTERVAL_MS"],
+      uploadDir: process.env["GDRIVE_UPLOAD_DIR"],
     },
     log: {
       level: process.env["LOG_LEVEL"],

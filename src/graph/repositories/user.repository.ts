@@ -19,6 +19,33 @@ export async function createUser(
   );
 }
 
+export async function getUserInterests(
+  session: Session,
+  discordId: string,
+): Promise<string[]> {
+  const result = await session.run(
+    `MATCH (u:User {discordId: $discordId})
+     RETURN u.interests AS interests`,
+    { discordId },
+  );
+  const record = result.records[0];
+  if (!record) return [];
+  const interests = record.get("interests");
+  return Array.isArray(interests) ? interests : [];
+}
+
+export async function setUserInterests(
+  session: Session,
+  discordId: string,
+  interests: string[],
+): Promise<void> {
+  await session.run(
+    `MATCH (u:User {discordId: $discordId})
+     SET u.interests = $interests`,
+    { discordId, interests },
+  );
+}
+
 export async function findAllUsers(
   session: Session,
 ): Promise<Array<UserNode & { linkCount: number }>> {

@@ -13,9 +13,13 @@ import type pino from "pino";
 import type { Driver } from "neo4j-driver";
 import type { EmbeddingService } from "../embeddings/index.js";
 import type { QueueClient } from "../queue/index.js";
-import { enqueue } from "../queue/index.js";
+import { enqueue, enqueueFile } from "../queue/index.js";
+import { createUser, setUserInterests } from "../graph/repositories/user.repository.js";
 import { extractUrls } from "./url-extractor.js";
 import { addReaction, REACTIONS } from "./reactions.js";
+import { isSupportedFile, fileHash } from "../extractor/index.js";
+import { writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import {
   generateScoreDistributionChart,
   generateContentTypeChart,
@@ -75,6 +79,12 @@ export function createBot(
               sub.setName("ask").setDescription("Ask a question about the community's collective knowledge")
                 .addStringOption((opt) =>
                   opt.setName("question").setDescription("Your question").setRequired(true),
+                ),
+            )
+            .addSubcommand((sub) =>
+              sub.setName("interests").setDescription("Set your knowledge interests (helps the system categorize what you share)")
+                .addStringOption((opt) =>
+                  opt.setName("topics").setDescription("Comma-separated interests (e.g., 'options trading, prediction markets, DeFi')").setRequired(true),
                 ),
             ),
         ];
@@ -239,6 +249,30 @@ export function createBot(
           logger.error({ err, question }, "RAG query failed in Discord");
           await cmd.editReply({ content: "Sorry, the query failed. Claude might be busy. Try again in a moment." });
         }
+      } else if (sub === "interests") {
+        const topicsRaw = cmd.options.getString("topics", true);
+        const interests = topicsRaw.split(",").map(t => t.trim()).filter(t => t.length > 0);
+
+        // Ensure user exists
+        await createUser(session, {
+          discordId: cmd.user.id,
+          username: cmd.user.username,
+          displayName: cmd.user.displayName ?? cmd.user.username,
+          avatarUrl: cmd.user.avatarURL() ?? "",
+        });
+
+        await setUserInterests(session, cmd.user.id, interests);
+
+        const embed = new EmbedBuilder()
+          .setTitle("Interests Updated")
+          .setDescription(
+            `Your knowledge profile has been set. When you share links or documents, the system will pay special attention to:\n\n` +
+            interests.map(i => `- **${i}**`).join("\n") +
+            `\n\nThis helps categorize and tag content based on what matters to you.`,
+          )
+          .setColor(0x5865f2);
+
+        await cmd.editReply({ embeds: [embed] });
       }
     } catch (err) {
       logger.error({ err, sub }, "Slash command error");
@@ -259,9 +293,8 @@ export function createBot(
     // Ignore messages not in the configured channel
     if (message.channelId !== config.channelId) return;
 
+    // --- Handle URLs ---
     const extracted = extractUrls(message.content);
-    if (extracted.length === 0) return;
-
     for (const { url, comment } of extracted) {
       try {
         enqueue(queueClient.db, {
@@ -274,7 +307,6 @@ export function createBot(
         });
         await addReaction(message, REACTIONS.QUEUED);
       } catch (err: unknown) {
-        // Handle UNIQUE constraint violation (duplicate discord_message_id)
         if (
           err instanceof Error &&
           err.message.includes("UNIQUE constraint failed")
@@ -284,6 +316,56 @@ export function createBot(
           logger.error({ err, url }, "Failed to enqueue URL");
           await addReaction(message, REACTIONS.FAILED);
         }
+      }
+    }
+
+    // --- Handle file attachments ---
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    for (const attachment of message.attachments.values()) {
+      if (!attachment.name || !isSupportedFile(attachment.name)) continue;
+      if (attachment.size > MAX_FILE_SIZE) {
+        logger.warn({ file: attachment.name, size: attachment.size }, "Attachment exceeds 50MB limit");
+        continue;
+      }
+
+      try {
+        // Download the file
+        const res = await fetch(attachment.url);
+        if (!res.ok) {
+          logger.error({ file: attachment.name, status: res.status }, "Failed to download attachment");
+          await addReaction(message, REACTIONS.FAILED);
+          continue;
+        }
+        const buffer = Buffer.from(await res.arrayBuffer());
+        const hash = fileHash(buffer);
+
+        // Save to uploads dir
+        const ext = attachment.name.substring(attachment.name.lastIndexOf("."));
+        const uploadDir = "./data/uploads";
+        await mkdir(uploadDir, { recursive: true });
+        const localPath = join(uploadDir, `${hash}${ext}`);
+        await writeFile(localPath, buffer);
+
+        // Enqueue for processing
+        const queued = enqueueFile(queueClient.db, {
+          fileName: attachment.name,
+          filePath: localPath,
+          fileHash: hash,
+          discordChannelId: message.channelId,
+          discordAuthorId: message.author.id,
+          discordAuthorName: message.author.displayName ?? message.author.username,
+          sourcePrefix: "file",
+        });
+
+        if (queued) {
+          await addReaction(message, REACTIONS.QUEUED);
+          logger.info({ file: attachment.name, hash: hash.slice(0, 12) }, "File attachment enqueued");
+        } else {
+          await addReaction(message, REACTIONS.DUPLICATE);
+        }
+      } catch (err) {
+        logger.error({ err, file: attachment.name }, "Failed to process attachment");
+        await addReaction(message, REACTIONS.FAILED);
       }
     }
   });

@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import { loadConfig } from "./config/index.js";
 import { createLogger } from "./config/logger.js";
 import { QueueClient } from "./queue/index.js";
@@ -9,6 +10,10 @@ import { createProcessor } from "./processor/index.js";
 import { createDiscordNotifier } from "./processor/discord-notifier.js";
 import { createTaxonomyManager } from "./taxonomy/manager.js";
 import { createDashboardServer } from "./dashboard/server.js";
+import { createGDriveWatcher } from "./gdrive/watcher.js";
+import type { GDriveWatcher } from "./gdrive/watcher.js";
+import { createInboxWatcher } from "./inbox/watcher.js";
+import type { InboxWatcher } from "./inbox/watcher.js";
 
 async function main() {
   const config = loadConfig();
@@ -36,8 +41,9 @@ async function main() {
   // 3. Load embedding model
   const embeddings = await createEmbeddingService(logger);
 
-  // 4. Initialize SQLite queue
+  // 4. Initialize SQLite queue + uploads directory
   const queueClient = new QueueClient(config.sqlite.path);
+  await mkdir("./data/uploads", { recursive: true });
   logger.info("SQLite queue initialized");
 
   // 5. Start dashboard server (with embeddings for RAG)
@@ -88,7 +94,40 @@ async function main() {
   );
   processor.start();
 
-  // 8. Start taxonomy manager
+  // 8. Start local inbox watcher
+  let inboxWatcher: InboxWatcher | null = null;
+  if (config.inbox.enabled) {
+    inboxWatcher = createInboxWatcher(
+      {
+        inboxDir: config.inbox.dir,
+        uploadDir: "./data/uploads",
+        pollIntervalMs: config.inbox.pollIntervalMs,
+        authorName: config.inbox.authorName,
+      },
+      queueClient,
+      logger,
+    );
+    inboxWatcher.start();
+  }
+
+  // 9. Optionally start Google Drive watcher
+  let driveWatcher: GDriveWatcher | null = null;
+  if (config.gdrive.enabled && config.gdrive.serviceAccountKeyPath && config.gdrive.sharedFolderId) {
+    driveWatcher = createGDriveWatcher(
+      {
+        serviceAccountKeyPath: config.gdrive.serviceAccountKeyPath,
+        sharedFolderId: config.gdrive.sharedFolderId,
+        pollIntervalMs: config.gdrive.pollIntervalMs,
+        uploadDir: config.gdrive.uploadDir,
+      },
+      queueClient,
+      graphClient.driver,
+      logger,
+    );
+    driveWatcher.start();
+  }
+
+  // 10. Start taxonomy manager
   const taxonomy = createTaxonomyManager(
     graphClient.driver,
     bot.client,
@@ -108,6 +147,8 @@ async function main() {
 
     processor.stop();
     taxonomy.stop();
+    inboxWatcher?.stop();
+    driveWatcher?.stop();
     dashboard.stop();
 
     await bot.destroy();

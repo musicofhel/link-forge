@@ -18,7 +18,11 @@ export async function createLink(
          l.contentType = $contentType,
          l.purpose = $purpose,
          l.integrationType = $integrationType,
-         l.quality = $quality
+         l.quality = $quality,
+         l.keyConcepts = $keyConcepts,
+         l.authors = $authors,
+         l.keyTakeaways = $keyTakeaways,
+         l.difficulty = $difficulty
      RETURN l`,
     {
       url: link.url,
@@ -34,6 +38,10 @@ export async function createLink(
       purpose: link.purpose,
       integrationType: link.integrationType,
       quality: link.quality,
+      keyConcepts: link.keyConcepts ?? [],
+      authors: link.authors ?? [],
+      keyTakeaways: link.keyTakeaways ?? [],
+      difficulty: link.difficulty ?? "",
     },
   );
 
