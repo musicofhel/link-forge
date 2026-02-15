@@ -298,7 +298,9 @@ export function createDashboardServer(
         RETURN l.url AS url, l.title AS title, l.domain AS domain,
                COALESCE(l.forgeScore, 0) AS forgeScore,
                COALESCE(l.contentType, 'reference') AS contentType,
-               l.purpose AS purpose, l.quality AS quality, l.savedAt AS savedAt
+               l.purpose AS purpose, l.quality AS quality, l.savedAt AS savedAt,
+               l.keyConcepts AS keyConcepts, l.authors AS authors,
+               l.keyTakeaways AS keyTakeaways, l.difficulty AS difficulty
         ORDER BY forgeScore DESC, l.savedAt DESC
         SKIP $offset LIMIT $limit
       `;
@@ -314,6 +316,10 @@ export function createDashboardServer(
         purpose: r.get("purpose"),
         quality: r.get("quality"),
         savedAt: r.get("savedAt"),
+        keyConcepts: r.get("keyConcepts") ?? [],
+        authors: r.get("authors") ?? [],
+        keyTakeaways: r.get("keyTakeaways") ?? [],
+        difficulty: r.get("difficulty") ?? null,
       }));
 
       res.json({ links, count: links.length, offset: offset.toNumber(), limit: limit.toNumber() });

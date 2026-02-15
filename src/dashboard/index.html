@@ -279,6 +279,10 @@
     .badge-analysis { background: #eb459e20; color: #eb459e; }
     .badge-reference { background: #99aab520; color: #99aab5; }
     .badge-commentary { background: #ed424520; color: #ed4245; }
+    .badge-research-paper { background: #9b59b620; color: #b07cc6; }
+    .badge-book { background: #e67e2220; color: #e67e22; }
+    .badge-whitepaper { background: #1abc9c20; color: #1abc9c; }
+    .badge-report { background: #3498db20; color: #3498db; }
 
     /* Pagination */
     .pagination {
@@ -783,6 +787,10 @@
             <option value="analysis">Analysis</option>
             <option value="reference">Reference</option>
             <option value="commentary">Commentary</option>
+            <option value="research-paper">Research Paper</option>
+            <option value="book">Book</option>
+            <option value="whitepaper">Whitepaper</option>
+            <option value="report">Report</option>
           </select>
         </div>
       </div>
@@ -847,6 +855,7 @@ const SCORE_COLORS = {
 const TYPE_COLORS = {
   tool: '#5865f2', tutorial: '#57f287', pattern: '#fee75c',
   analysis: '#eb459e', reference: '#8e9297', commentary: '#ed4245',
+  'research-paper': '#b07cc6', book: '#e67e22', whitepaper: '#1abc9c', report: '#3498db',
 };
 const USER_COLORS = ['#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#f0b232', '#9b59b6', '#1abc9c'];
 
@@ -1010,7 +1019,9 @@ function getFilteredLinks() {
     (l.title || '').toLowerCase().includes(search) ||
     (l.domain || '').toLowerCase().includes(search) ||
     (l.url || '').toLowerCase().includes(search) ||
-    (l.purpose || '').toLowerCase().includes(search)
+    (l.purpose || '').toLowerCase().includes(search) ||
+    (l.authors || []).some(a => a.toLowerCase().includes(search)) ||
+    (l.keyConcepts || []).some(c => c.toLowerCase().includes(search))
   );
 
   filtered.sort((a, b) => {
@@ -1045,8 +1056,8 @@ function renderTable() {
           </div>
         </td>
         <td><span class="badge badge-${l.contentType}">${l.contentType}</span></td>
-        <td><a href="${escapeHtml(l.url)}" target="_blank" title="${escapeHtml(l.purpose || '')}">${escapeHtml((l.title || l.url).slice(0, 90))}</a></td>
-        <td><div class="domain-cell"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(l.domain)}&sz=32" alt="" loading="lazy">${escapeHtml(l.domain)}</div></td>
+        <td>${l.url.startsWith('file:///') ? `<span title="${escapeHtml(l.purpose || '')}" style="color:#dbdee1">${escapeHtml(l.url.split('/').pop() || l.title || l.url)}</span>` : `<a href="${escapeHtml(l.url)}" target="_blank" title="${escapeHtml(l.purpose || '')}">${escapeHtml((l.title || l.url).slice(0, 90))}</a>`}${(l.authors && l.authors.length) || l.difficulty ? `<div style="font-size:11px;color:#8e9297;margin-top:2px">${l.authors && l.authors.length ? escapeHtml(l.authors.join(', ')) : ''}${l.difficulty ? ` <span class="badge" style="font-size:10px;padding:1px 5px;background:#33363b">${l.difficulty}</span>` : ''}</div>` : ''}</td>
+        <td>${l.url.startsWith('file:///') ? `<div class="domain-cell" style="color:#8e9297">local file</div>` : `<div class="domain-cell"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(l.domain)}&sz=32" alt="" loading="lazy">${escapeHtml(l.domain)}</div>`}</td>
         <td style="white-space:nowrap;color:#8e9297">${l.savedAt ? new Date(l.savedAt).toLocaleDateString() : '-'}</td>
       </tr>
     `).join('');
@@ -1198,7 +1209,7 @@ async function loadGraph() {
       if (d.nodeType === 'link') return 1;
       return 0.2;
     })
-    .attr('cursor', d => d.nodeType === 'link' ? 'pointer' : 'default')
+    .attr('cursor', d => d.nodeType === 'link' && !d.id.startsWith('file:///') ? 'pointer' : 'default')
     .call(d3.drag()
       .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
       .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
@@ -1218,7 +1229,7 @@ async function loadGraph() {
     })
     .on('mouseout', () => { tooltip.style.opacity = 0; })
     .on('click', (e, d) => {
-      if (d.nodeType === 'link') window.open(d.id, '_blank');
+      if (d.nodeType === 'link' && !d.id.startsWith('file:///')) window.open(d.id, '_blank');
     });
 
   // User node labels
@@ -1505,9 +1516,11 @@ async function sendChat() {
       if (data.sources && data.sources.length > 0) {
         html += '<div class="chat-sources"><div class="chat-sources-label">Sources</div>';
         for (const s of data.sources.slice(0, 5)) {
+          const isFile = s.url.startsWith('file:///');
+          const displayText = isFile ? s.url.split('/').pop() || s.title || s.url : (s.title || s.url).slice(0, 60);
           html += `<div class="chat-source-link">
             <span class="chat-source-score">${s.forgeScore.toFixed(2)}</span>
-            <a href="${escapeHtml(s.url)}" target="_blank">${escapeHtml((s.title || s.url).slice(0, 60))}</a>
+            ${isFile ? `<span style="color:#dbdee1">${escapeHtml(displayText)}</span>` : `<a href="${escapeHtml(s.url)}" target="_blank">${escapeHtml(displayText)}</a>`}
           </div>`;
         }
         html += '</div>';
