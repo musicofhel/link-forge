@@ -251,7 +251,15 @@ export function createBot(
         }
       } else if (sub === "interests") {
         const topicsRaw = cmd.options.getString("topics", true);
-        const interests = topicsRaw.split(",").map(t => t.trim()).filter(t => t.length > 0);
+        const interests = topicsRaw
+          .split(",")
+          .map(t => t.replace(/[^a-zA-Z0-9\s&,/-]/g, "").trim().slice(0, 50))
+          .filter(t => t.length > 0);
+
+        if (interests.length === 0) {
+          await cmd.editReply({ content: "Please provide valid interest topics (letters, numbers, spaces, hyphens)." });
+          return;
+        }
 
         // Ensure user exists
         await createUser(session, {

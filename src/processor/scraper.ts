@@ -1,6 +1,7 @@
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import type pino from "pino";
+import { validateUrlForSSRF } from "../security/url-validator.js";
 
 export interface ScrapedContent {
   title: string;
@@ -235,6 +236,8 @@ export async function scrapeUrl(
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    await validateUrlForSSRF(url);
+
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
@@ -258,11 +261,12 @@ export async function scrapeUrl(
     const article = reader.parse();
 
     if (article) {
+      const text = article.textContent ?? "";
       return {
         title: article.title || extractTitleFromHtml(dom) || domain,
         description:
-          article.excerpt || article.textContent.slice(0, 300).trim(),
-        content: article.textContent.trim(),
+          article.excerpt || text.slice(0, 300).trim(),
+        content: text.trim(),
         domain,
       };
     }

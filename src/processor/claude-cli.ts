@@ -139,9 +139,15 @@ export async function categorizeWithClaude(
   let prompt = isFile ? DOCUMENT_PROMPT : URL_PROMPT;
 
   // Inject user interests into the prompt if available
+  // Sanitize interests to prevent prompt injection (alphanumeric, spaces, hyphens, ampersands only)
   if (userInterests.length > 0) {
-    const interestsStr = userInterests.join(", ");
-    prompt += `\n\nIMPORTANT CONTEXT — The person who shared this is specifically interested in: ${interestsStr}. Pay special attention to aspects of the content that relate to these interests. Tag and categorize accordingly. Extract key concepts relevant to their focus areas.`;
+    const sanitized = userInterests
+      .map(i => i.replace(/[^a-zA-Z0-9\s&,/-]/g, "").trim().slice(0, 50))
+      .filter(i => i.length > 0);
+    if (sanitized.length > 0) {
+      const interestsStr = sanitized.join(", ");
+      prompt += `\n\nIMPORTANT CONTEXT — The person who shared this is specifically interested in: ${interestsStr}. Pay special attention to aspects of the content that relate to these interests. Tag and categorize accordingly. Extract key concepts relevant to their focus areas.`;
+    }
   }
 
   // Documents get 12k chars to Claude (vs 4k for URLs) — denser content needs more context

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { extname, basename } from "node:path";
+import { extname, basename, resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { Readability } from "@mozilla/readability";
 import { parseOffice } from "officeparser";
@@ -32,11 +32,19 @@ export function fileHash(buffer: Buffer): string {
 }
 
 /** Extract text content from a local file, returning the same ScrapedContent
- *  interface used by scrapeUrl() so the downstream pipeline is unchanged. */
+ *  interface used by scrapeUrl() so the downstream pipeline is unchanged.
+ *  filePath must be within the data/ directory tree. */
 export async function extractTextFromFile(
   filePath: string,
   logger: pino.Logger,
 ): Promise<ScrapedContent> {
+  // Path traversal protection: only allow files within data/ directory
+  const resolvedPath = resolve(filePath);
+  const dataDir = resolve("./data");
+  if (!resolvedPath.startsWith(dataDir + "/")) {
+    throw new Error(`File extraction blocked: ${filePath} is outside data/ directory`);
+  }
+
   const ext = extname(filePath).toLowerCase();
   const name = basename(filePath);
   const log = logger.child({ file: name, ext });
@@ -88,10 +96,11 @@ export async function extractTextFromFile(
       const reader = new Readability(dom.window.document);
       const article = reader.parse();
       if (article) {
+        const text = article.textContent ?? "";
         return {
           title: article.title || titleFromFilename(name),
-          description: article.excerpt || article.textContent.slice(0, 300).trim(),
-          content: article.textContent.trim(),
+          description: article.excerpt || text.slice(0, 300).trim(),
+          content: text.trim(),
           domain: "local-file",
         };
       }

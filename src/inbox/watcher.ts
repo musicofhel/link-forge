@@ -1,10 +1,11 @@
 import { readdir, copyFile, unlink, mkdir } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type pino from "pino";
 import type { QueueClient } from "../queue/index.js";
 import { enqueueFile } from "../queue/operations.js";
 import { isSupportedFile, fileHash } from "../extractor/index.js";
+import { sanitizeFilename } from "../security/path-validator.js";
 
 export interface InboxWatcherConfig {
   /** Directory to watch for incoming files. */
@@ -44,8 +45,19 @@ export function createInboxWatcher(
         if (!entry.isFile()) continue;
         if (!isSupportedFile(entry.name)) continue;
 
-        const srcPath = join(config.inboxDir, entry.name);
-        const log = logger.child({ file: entry.name });
+        // Sanitize filename and validate path stays in inbox dir
+        const safeName = sanitizeFilename(entry.name);
+        if (!safeName || !isSupportedFile(safeName)) continue;
+
+        const srcPath = join(config.inboxDir, safeName);
+        const resolvedSrc = resolve(srcPath);
+        const resolvedInbox = resolve(config.inboxDir);
+        if (!resolvedSrc.startsWith(resolvedInbox + "/")) {
+          logger.warn({ file: entry.name }, "Inbox: path traversal blocked");
+          continue;
+        }
+
+        const log = logger.child({ file: safeName });
 
         try {
           // Read and hash
@@ -53,14 +65,14 @@ export function createInboxWatcher(
           const hash = fileHash(buffer);
 
           // Copy to uploads dir then delete original (rename fails across filesystems)
-          const ext = entry.name.substring(entry.name.lastIndexOf("."));
+          const ext = safeName.substring(safeName.lastIndexOf("."));
           const destPath = join(config.uploadDir, `${hash}${ext}`);
           await copyFile(srcPath, destPath);
           await unlink(srcPath);
 
           // Enqueue
           const queued = enqueueFile(queueClient.db, {
-            fileName: entry.name,
+            fileName: safeName,
             filePath: destPath,
             fileHash: hash,
             discordChannelId: "local-inbox",

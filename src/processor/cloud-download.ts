@@ -1,7 +1,9 @@
 import { writeFile, mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type pino from "pino";
 import { fileHash, isSupportedFile } from "../extractor/index.js";
+import { validateUrlForSSRF } from "../security/url-validator.js";
+import { sanitizeFilename } from "../security/path-validator.js";
 
 export interface CloudDownloadResult {
   filePath: string;
@@ -62,7 +64,11 @@ export async function downloadCloudFile(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60_000);
 
+  const MAX_CLOUD_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
   try {
+    await validateUrlForSSRF(downloadUrl);
+
     const res = await fetch(downloadUrl, {
       signal: controller.signal,
       headers: {
@@ -76,6 +82,13 @@ export async function downloadCloudFile(
       return null;
     }
 
+    // Check content-length before downloading into memory
+    const contentLength = res.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > MAX_CLOUD_FILE_SIZE) {
+      log.warn({ size: contentLength }, "Cloud file exceeds 50MB limit");
+      return null;
+    }
+
     // Try to get filename from Content-Disposition header
     let fileName = "download";
     const disposition = res.headers.get("content-disposition");
@@ -85,7 +98,7 @@ export async function downloadCloudFile(
       const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
       const extracted = utf8Match?.[1] ?? plainMatch?.[1];
       if (extracted) {
-        fileName = decodeURIComponent(extracted).trim();
+        fileName = sanitizeFilename(decodeURIComponent(extracted).trim());
       }
     }
 
@@ -96,7 +109,7 @@ export async function downloadCloudFile(
         const segments = parsed.pathname.split("/").filter(Boolean);
         const last = segments.at(-1);
         if (last && last.includes(".")) {
-          fileName = decodeURIComponent(last);
+          fileName = sanitizeFilename(decodeURIComponent(last));
         }
       } catch {
         // keep default
@@ -114,10 +127,25 @@ export async function downloadCloudFile(
       return null;
     }
 
+    // Double-check size after download (content-length can be absent or wrong)
+    if (buffer.length > MAX_CLOUD_FILE_SIZE) {
+      log.warn({ size: buffer.length }, "Cloud file exceeds 50MB limit after download");
+      return null;
+    }
+
     const hash = fileHash(buffer);
     const ext = fileName.substring(fileName.lastIndexOf("."));
     await mkdir(uploadDir, { recursive: true });
     const filePath = join(uploadDir, `${hash}${ext}`);
+
+    // Validate path stays within upload directory
+    const resolvedPath = resolve(filePath);
+    const resolvedUploadDir = resolve(uploadDir);
+    if (!resolvedPath.startsWith(resolvedUploadDir + "/")) {
+      log.error({ filePath }, "Path traversal detected in cloud download");
+      return null;
+    }
+
     await writeFile(filePath, buffer);
 
     log.info({ fileName, hash: hash.slice(0, 12), bytes: buffer.length }, "Cloud file downloaded");

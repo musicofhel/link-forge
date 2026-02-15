@@ -1,4 +1,6 @@
 import express from "express";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,6 +35,50 @@ export function createDashboardServer(
 ): DashboardServer {
   const app = express();
   app.use(express.json());
+
+  // CORS — restrict to same-origin by default, configurable via env
+  const allowedOrigin = process.env["DASHBOARD_CORS_ORIGIN"] || undefined;
+  app.use(cors({
+    origin: allowedOrigin ?? false, // false = same-origin only
+    credentials: false,
+  }));
+
+  // Rate limiting — 100 requests per 15 minutes per IP for API endpoints
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests, please try again later" },
+  });
+
+  // Stricter rate limit for the RAG query endpoint (expensive)
+  const askLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many queries, please try again later" },
+  });
+
+  app.use("/api/", apiLimiter);
+
+  // API key authentication — optional but strongly recommended
+  const apiKey = process.env["DASHBOARD_API_KEY"];
+  if (apiKey) {
+    app.use("/api/", (req, res, next) => {
+      const provided = req.headers["x-api-key"] || req.query["api_key"];
+      if (provided !== apiKey) {
+        res.status(401).json({ error: "Unauthorized — provide X-Api-Key header or api_key query param" });
+        return;
+      }
+      next();
+    });
+    logger.info("Dashboard API key authentication enabled");
+  } else {
+    logger.warn("DASHBOARD_API_KEY not set — dashboard API is unauthenticated");
+  }
+
   let server: ReturnType<typeof app.listen> | null = null;
 
   const htmlPath = resolveHtml();
@@ -577,8 +623,8 @@ export function createDashboardServer(
     }
   });
 
-  // RAG query endpoint
-  app.post("/api/ask", async (req, res) => {
+  // RAG query endpoint (stricter rate limit)
+  app.post("/api/ask", askLimiter, async (req, res) => {
     if (!embeddings) {
       res.status(503).json({ error: "Embedding service not available" });
       return;
