@@ -883,6 +883,14 @@ function qs(params) {
   return p.toString() ? '?' + p.toString() : '';
 }
 
+// API key from URL query param (?key=...) — injected into all API requests
+const _apiKey = new URLSearchParams(window.location.search).get('key') || '';
+function apiFetch(url, opts) {
+  const headers = { ...(opts?.headers || {}) };
+  if (_apiKey) headers['X-Api-Key'] = _apiKey;
+  return fetch(url, { ...opts, headers });
+}
+
 function escapeHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;
@@ -891,7 +899,7 @@ function escapeHtml(s) {
 
 // --- Tab system ---
 async function loadUsers() {
-  const res = await fetch('/api/users');
+  const res = await apiFetch('/api/users');
   const data = await res.json();
   const bar = document.getElementById('tab-bar');
 
@@ -940,7 +948,7 @@ async function loadUsers() {
 
 // --- Stats + Charts ---
 async function loadStats() {
-  const res = await fetch('/api/stats' + qs({ user: currentUser }));
+  const res = await apiFetch('/api/stats' + qs({ user: currentUser }));
   const data = await res.json();
 
   document.querySelector('#stat-links strong').textContent = data.counts.links;
@@ -1001,7 +1009,7 @@ let sortKey = 'forgeScore';
 let sortAsc = false;
 
 async function loadLinks() {
-  const res = await fetch('/api/links' + qs({ user: currentUser, limit: '500' }));
+  const res = await apiFetch('/api/links' + qs({ user: currentUser, limit: '500' }));
   const data = await res.json();
   allLinks = data.links;
   currentPage = 0;
@@ -1148,7 +1156,7 @@ document.getElementById('filter-type').addEventListener('change', () => { curren
 
 // --- Force Graph ---
 async function loadGraph() {
-  const res = await fetch('/api/graph' + qs({ user: currentUser }));
+  const res = await apiFetch('/api/graph' + qs({ user: currentUser }));
   const data = await res.json();
 
   const svgEl = document.getElementById('graph');
@@ -1289,7 +1297,7 @@ async function loadOverlap() {
   }
   section.classList.add('visible');
 
-  const res = await fetch('/api/overlap');
+  const res = await apiFetch('/api/overlap');
   const data = await res.json();
 
   renderUserProfiles(data);
@@ -1499,7 +1507,7 @@ async function sendChat() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   try {
-    const res = await fetch('/api/ask', {
+    const res = await apiFetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question }),

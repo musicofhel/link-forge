@@ -10,6 +10,7 @@ import { createLogger } from "../src/config/logger.js";
 import { createGraphClient } from "../src/graph/client.js";
 import { createEmbeddingService } from "../src/embeddings/index.js";
 import { categorizeWithClaude } from "../src/processor/claude-cli.js";
+import neo4j from "neo4j-driver";
 import type { Driver } from "neo4j-driver";
 
 async function main() {
@@ -60,7 +61,7 @@ async function reprocessUrls(
               l.forgeScore AS oldScore, l.contentType AS oldType
        ORDER BY l.savedAt ASC
        SKIP $skip`,
-      { skip: skip },
+      { skip: neo4j.int(skip) },
     );
 
     const total = result.records.length;
