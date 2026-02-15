@@ -883,12 +883,11 @@ function qs(params) {
   return p.toString() ? '?' + p.toString() : '';
 }
 
-// API key from URL query param (?key=...) — injected into all API requests
-const _apiKey = new URLSearchParams(window.location.search).get('key') || '';
+// Authenticated fetch — session cookie is sent automatically
 function apiFetch(url, opts) {
   const headers = { ...(opts?.headers || {}) };
-  if (_apiKey) headers['X-Api-Key'] = _apiKey;
-  return fetch(url, { ...opts, headers });
+  headers['ngrok-skip-browser-warning'] = 'true';
+  return fetch(url, { ...opts, headers, credentials: 'same-origin' });
 }
 
 function escapeHtml(s) {

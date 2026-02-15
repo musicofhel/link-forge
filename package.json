@@ -24,9 +24,11 @@
     "@modelcontextprotocol/sdk": "^1.12.1",
     "@mozilla/readability": "^0.6.0",
     "@types/express": "^5.0.6",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.9.1",
     "chart.js": "^4.5.1",
     "chartjs-node-canvas": "^5.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "discord.js": "^14.18.0",
     "dotenv": "^16.5.0",
@@ -41,7 +43,9 @@
     "zod": "^3.25.11"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.15.18",

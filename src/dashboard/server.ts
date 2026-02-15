@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
+import { compareSync } from "bcryptjs";
+import { createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,15 +38,51 @@ export function createDashboardServer(
 ): DashboardServer {
   const app = express();
   app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
 
-  // CORS — restrict to same-origin by default, configurable via env
+  // --- Auth config ---
+  const dashGuid = process.env["DASHBOARD_GUID"] || "";
+  const passwordHash = process.env["DASHBOARD_PASSWORD_HASH"] || "";
+  const sessionSecret = process.env["DASHBOARD_SESSION_SECRET"] || randomBytes(32).toString("base64url");
+  const authEnabled = !!(dashGuid && passwordHash);
+
+  if (!authEnabled) {
+    logger.warn("DASHBOARD_GUID or DASHBOARD_PASSWORD_HASH not set — dashboard is unauthenticated at /dashboard");
+  } else {
+    logger.info({ path: `/d/${dashGuid}` }, "Dashboard password auth enabled");
+  }
+
+  app.set("trust proxy", 1); // trust ngrok/reverse proxy for req.protocol
+  app.use(cookieParser());
+
+  // Session token helpers — HMAC-signed tokens with expiry
+  const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  function createSessionToken(): string {
+    const payload = `${Date.now() + SESSION_MAX_AGE_MS}:${randomBytes(16).toString("hex")}`;
+    const sig = createHmac("sha256", sessionSecret).update(payload).digest("base64url");
+    return `${payload}.${sig}`;
+  }
+
+  function verifySessionToken(token: string): boolean {
+    const dotIdx = token.lastIndexOf(".");
+    if (dotIdx < 0) return false;
+    const payload = token.slice(0, dotIdx);
+    const sig = token.slice(dotIdx + 1);
+    const expected = createHmac("sha256", sessionSecret).update(payload).digest("base64url");
+    if (sig !== expected) return false;
+    const expiry = parseInt(payload.split(":")[0]!, 10);
+    return Date.now() < expiry;
+  }
+
+  // CORS
   const allowedOrigin = process.env["DASHBOARD_CORS_ORIGIN"] || undefined;
   app.use(cors({
-    origin: allowedOrigin ?? false, // false = same-origin only
-    credentials: false,
+    origin: allowedOrigin ?? false,
+    credentials: true,
   }));
 
-  // Rate limiting — 100 requests per 15 minutes per IP for API endpoints
+  // Rate limiting
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -52,7 +91,6 @@ export function createDashboardServer(
     message: { error: "Too many requests, please try again later" },
   });
 
-  // Stricter rate limit for the RAG query endpoint (expensive)
   const askLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20,
@@ -61,30 +99,76 @@ export function createDashboardServer(
     message: { error: "Too many queries, please try again later" },
   });
 
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many login attempts, please try again later",
+  });
+
   app.use("/api/", apiLimiter);
 
-  // API key authentication — optional but strongly recommended
-  const apiKey = process.env["DASHBOARD_API_KEY"];
-  if (apiKey) {
-    app.use("/api/", (req, res, next) => {
-      const provided = req.headers["x-api-key"] || req.query["api_key"];
-      if (provided !== apiKey) {
-        res.status(401).json({ error: "Unauthorized — provide X-Api-Key header or api_key query param" });
-        return;
-      }
-      next();
-    });
-    logger.info("Dashboard API key authentication enabled");
-  } else {
-    logger.warn("DASHBOARD_API_KEY not set — dashboard API is unauthenticated");
+  // --- Auth middleware for /api/* and /d/:guid ---
+  function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction): void {
+    if (!authEnabled) { next(); return; }
+    const token = req.cookies?.["lf_session"];
+    if (token && verifySessionToken(token)) { next(); return; }
+    if (req.originalUrl.startsWith("/api/")) {
+      res.status(401).json({ error: "Unauthorized" });
+    } else {
+      // Redirect to login page
+      res.redirect(`/d/${dashGuid}/login`);
+    }
   }
 
   let server: ReturnType<typeof app.listen> | null = null;
-
   const htmlPath = resolveHtml();
+  const loginHtmlPath = path.join(path.dirname(htmlPath), "login.html");
+
+  // --- Login page ---
+  if (authEnabled) {
+    app.get(`/d/${dashGuid}/login`, (_req, res) => {
+      res.sendFile(loginHtmlPath);
+    });
+
+    app.post(`/d/${dashGuid}/login`, loginLimiter, (req, res) => {
+      const password = (req.body as { password?: string })?.password || "";
+      if (compareSync(password, passwordHash)) {
+        const token = createSessionToken();
+        res.cookie("lf_session", token, {
+          httpOnly: true,
+          secure: req.protocol === "https",
+          sameSite: "lax",
+          maxAge: SESSION_MAX_AGE_MS,
+          path: "/",
+        });
+        res.redirect(`/d/${dashGuid}`);
+      } else {
+        logger.warn({ ip: req.ip }, "Failed dashboard login attempt");
+        res.redirect(`/d/${dashGuid}/login?error=1`);
+      }
+    });
+  }
+
+  // --- Dashboard route (GUID-based) ---
+  if (authEnabled) {
+    app.get(`/d/${dashGuid}`, requireAuth, (_req, res) => {
+      res.sendFile(htmlPath);
+    });
+  }
+
+  // Legacy /dashboard — redirect to GUID path if auth enabled, else serve directly
   app.get("/dashboard", (_req, res) => {
-    res.sendFile(htmlPath);
+    if (authEnabled) {
+      res.redirect(`/d/${dashGuid}`);
+    } else {
+      res.sendFile(htmlPath);
+    }
   });
+
+  // Protect all API routes
+  app.use("/api/", requireAuth);
 
   // Users API
   app.get("/api/users", async (_req, res) => {
