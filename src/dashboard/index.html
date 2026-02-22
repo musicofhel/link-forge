@@ -101,58 +101,6 @@
     }
     .tab.active .link-count { background: #5865f233; color: #7983f5; }
 
-    /* Tab overflow dropdown */
-    .tab-overflow {
-      position: relative;
-    }
-    .tab-overflow-btn {
-      padding: 10px 14px;
-      background: #2b2d31;
-      color: #8e9297;
-      border: 1px solid transparent;
-      border-bottom: none;
-      border-radius: 10px 10px 0 0;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .tab-overflow-btn:hover { background: #323439; color: #dbdee1; }
-    .tab-overflow-btn.has-active { color: #7983f5; font-weight: 600; }
-    .tab-overflow-menu {
-      display: none;
-      position: absolute;
-      top: 100%;
-      right: 0;
-      background: #2b2d31;
-      border: 1px solid #3f4147;
-      border-radius: 8px;
-      padding: 4px;
-      z-index: 50;
-      min-width: 200px;
-      max-height: 320px;
-      overflow-y: auto;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    }
-    .tab-overflow-menu.open { display: block; }
-    .tab-overflow-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      color: #8e9297;
-      transition: background 0.1s;
-    }
-    .tab-overflow-item:hover { background: #383a40; color: #dbdee1; }
-    .tab-overflow-item.active { color: #7983f5; background: #5865f220; font-weight: 600; }
-
     /* Header */
     .header {
       background: #2b2d31;
@@ -218,7 +166,15 @@
       position: relative;
       overflow: hidden;
     }
-    .graph-container svg { width: 100%; height: 100%; }
+    #graph-canvas-dash { width: 100%; cursor: grab; border-radius: 0 0 8px 8px; }
+    #graph-canvas-dash:active { cursor: grabbing; }
+    .graph-legend {
+      position: absolute; bottom: 12px; right: 12px; z-index: 5;
+      background: #1a1b1ecc; border: 1px solid #3f414766; border-radius: 8px;
+      padding: 8px 12px; display: flex; gap: 12px; font-size: 11px;
+    }
+    .graph-legend-item { display: flex; align-items: center; gap: 5px; color: #8e9297; }
+    .graph-legend-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .chart-wrap { position: relative; width: 100%; height: 200px; }
     .chart-wrap canvas { width: 100% !important; height: 100% !important; }
 
@@ -261,7 +217,7 @@
       outline: none;
       border-color: #5865f2;
     }
-    .search-input {
+    .search-wrap .search-input {
       background: #383a40;
       border: 1px solid #4f545c;
       color: #dbdee1;
@@ -271,7 +227,7 @@
       width: 220px;
       transition: border-color 0.15s, width 0.2s;
     }
-    .search-input:focus { outline: none; border-color: #5865f2; width: 280px; }
+    .search-wrap .search-input:focus { outline: none; border-color: #5865f2; width: 280px; }
     .search-wrap {
       position: relative;
       display: inline-flex;
@@ -422,50 +378,6 @@
     }
     .tag-pill:hover { background: #2b2d31cc; }
     .tag-pill .tag-count { color: #7983f5; margin-left: 3px; font-weight: 600; }
-
-    /* Minor user rows (compact list for low-activity users) */
-    .minor-users-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 0 6px;
-      font-size: 11px;
-      color: #6d7078;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .minor-users-header:hover { color: #8e9297; }
-    .minor-users-header .chevron { transition: transform 0.2s; font-size: 10px; }
-    .minor-users-header .chevron.open { transform: rotate(90deg); }
-    .minor-user-list { display: none; }
-    .minor-user-list.open { display: block; }
-    .minor-user-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 8px;
-      border-radius: 6px;
-      transition: background 0.1s;
-    }
-    .minor-user-row:hover { background: #33363b; }
-    .minor-user-avatar {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      flex-shrink: 0;
-    }
-    .minor-user-name { font-size: 13px; color: #dbdee1; font-weight: 500; min-width: 100px; }
-    .minor-user-stat { font-size: 12px; color: #8e9297; min-width: 60px; }
-    .minor-user-stat strong { color: #7983f5; }
-    .minor-user-types { display: flex; gap: 4px; flex-wrap: wrap; }
 
     /* Overlap pairs */
     .overlap-pair {
@@ -802,6 +714,127 @@
       border-radius: 2px;
       flex-shrink: 0;
     }
+
+    /* Link cards */
+    .link-list { display: flex; flex-direction: column; gap: 2px; }
+    .link-item {
+      display: flex; gap: 12px; padding: 10px 14px;
+      border-left: 3px solid; border-radius: 6px;
+      transition: background 0.15s; cursor: pointer;
+      text-decoration: none; color: inherit;
+    }
+    .link-item:hover { background: #33363b; }
+    .link-item-score {
+      font-size: 14px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      min-width: 36px; text-align: center;
+      padding-top: 2px; flex-shrink: 0;
+    }
+    .link-item-body { flex: 1; min-width: 0; }
+    .link-item-row1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .link-item-title {
+      font-size: 14px; font-weight: 500; color: #dbdee1;
+      overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; flex: 1; min-width: 0;
+    }
+    .link-item:hover .link-item-title { color: #7983f5; }
+    .link-item-date {
+      font-size: 11px; color: #6d7078;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .link-item-row2 {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: #8e9297; margin-top: 3px;
+    }
+    .link-item-row2 img { width: 14px; height: 14px; border-radius: 2px; }
+    .link-item-concepts {
+      display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px;
+    }
+    .concept-pill {
+      font-size: 10px; padding: 1px 7px; border-radius: 10px;
+      background: #383a40; color: #8e9297;
+    }
+
+    /* Domain leaderboard */
+    .domain-row {
+      display: flex; align-items: center; gap: 10px; padding: 6px 0;
+      border-bottom: 1px solid #33363b;
+    }
+    .domain-row:last-child { border-bottom: none; }
+    .domain-row .domain-rank { width: 22px; font-size: 11px; color: #6d7078; text-align: right; flex-shrink: 0; }
+    .domain-row .domain-icon { width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px; }
+    .domain-row .domain-name { flex: 1; font-size: 13px; color: #dbdee1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .domain-row .domain-bar-wrap { flex: 0 0 120px; height: 6px; background: #383a40; border-radius: 3px; overflow: hidden; }
+    .domain-row .domain-bar { height: 100%; background: #5865f2; border-radius: 3px; transition: width 0.4s ease; }
+    .domain-row .domain-count { width: 32px; font-size: 12px; color: #8e9297; text-align: right; flex-shrink: 0; }
+
+    /* Quality badge on link cards */
+    .badge-quality { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+    .badge-quality-high { background: #57f28733; color: #57f287; }
+    .badge-quality-medium { background: #fee75c33; color: #fee75c; }
+    .badge-quality-low { background: #ed424533; color: #ed4245; }
+
+    /* Category pills on link cards */
+    .cat-pill {
+      font-size: 10px; padding: 1px 7px; border-radius: 10px;
+      background: #fee75c22; color: #fee75c; border: 1px solid #fee75c33;
+    }
+
+    /* Integration type label */
+    .integ-label { font-size: 10px; color: #6d7078; font-style: italic; }
+
+    /* Purpose subtitle */
+    .link-item-purpose {
+      font-size: 11px; color: #6d7078; font-style: italic;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;
+    }
+
+    /* Tech bubble grid */
+    .tech-bubbles { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .tech-bubble {
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%; cursor: pointer; transition: all 0.2s;
+      position: relative; text-align: center; font-weight: 600;
+    }
+    .tech-bubble:hover { transform: scale(1.15); z-index: 2; }
+    .tech-bubble.active { box-shadow: 0 0 0 3px #fff5; }
+    .tech-bubble span { font-size: 10px; color: #fff; pointer-events: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; max-width: 100%; }
+    .tech-detail-header { font-size: 15px; font-weight: 600; color: #dbdee1; margin-bottom: 8px; }
+    .tech-detail-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+    .tech-tool-pill {
+      font-size: 11px; padding: 3px 10px; border-radius: 6px;
+      background: #57f28722; color: #57f287; border: 1px solid #57f28733;
+      text-decoration: none;
+    }
+    .tech-tool-pill:hover { background: #57f28744; }
+
+    /* Category tree */
+    .cat-tree-parent {
+      padding: 8px 0; border-bottom: 1px solid #33363b; cursor: pointer;
+    }
+    .cat-tree-parent:last-child { border-bottom: none; }
+    .cat-tree-parent-header {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cat-tree-toggle { color: #6d7078; font-size: 14px; width: 16px; transition: transform 0.2s; }
+    .cat-tree-toggle.open { transform: rotate(90deg); }
+    .cat-tree-name { flex: 1; font-size: 13px; color: #dbdee1; font-weight: 500; }
+    .cat-tree-count { font-size: 12px; color: #8e9297; }
+    .cat-tree-children { padding-left: 24px; display: none; }
+    .cat-tree-children.open { display: block; }
+    .cat-tree-child {
+      display: flex; align-items: center; gap: 8px; padding: 4px 0;
+    }
+    .cat-tree-child-name { flex: 1; font-size: 12px; color: #b5bac1; }
+    .cat-tree-child-count { font-size: 11px; color: #6d7078; }
+
+    /* Difficulty pills */
+    .diff-pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+      border-radius: 8px; background: #383a40; font-size: 13px;
+    }
+    .diff-pill .diff-count { font-weight: 700; font-size: 16px; }
+    .diff-pill .diff-label { color: #8e9297; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -841,12 +874,43 @@
       <h2>Content Types</h2>
       <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
     </div>
+    <div class="card fade-in" style="animation-delay:0.08s">
+      <h2>Quality Distribution</h2>
+      <div class="chart-wrap"><canvas id="qualityChart"></canvas></div>
+    </div>
+    <div class="card fade-in" style="animation-delay:0.1s">
+      <h2>Integration Type</h2>
+      <div class="chart-wrap"><canvas id="integrationChart"></canvas></div>
+    </div>
+    <div class="card fade-in" style="animation-delay:0.12s">
+      <h2>Difficulty Spread</h2>
+      <div id="difficulty-spread" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;min-height:50px"></div>
+    </div>
+    <div class="card fade-in" style="animation-delay:0.14s">
+      <h2>Top Domains</h2>
+      <div id="domain-leaderboard" style="max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#383a40 transparent"></div>
+    </div>
+    <div class="card full fade-in" style="animation-delay:0.16s">
+      <h2>Activity Timeline</h2>
+      <div style="position:relative;width:100%;height:180px"><canvas id="timelineChart"></canvas></div>
+    </div>
+    <div class="card full fade-in" style="animation-delay:0.18s">
+      <h2>Technology Landscape</h2>
+      <div id="tech-landscape" style="min-height:200px"></div>
+      <div id="tech-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #33363b"></div>
+    </div>
+    <div class="card fade-in" style="animation-delay:0.2s">
+      <h2>Category Hierarchy</h2>
+      <div id="category-tree" style="max-height:400px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#383a40 transparent"></div>
+    </div>
+    <div class="card fade-in" style="animation-delay:0.2s">
+      <div style="height:1px"></div>
+    </div>
     <!-- Overlap analysis (All tab only) -->
     <div class="overlap-section visible" id="overlap-section">
       <div class="card full fade-in" style="animation-delay:0.1s">
         <h2>User Profiles</h2>
-        <div class="overlap-grid" id="user-profiles"></div>
-        <div id="user-profiles-minor" style="margin-top:12px"></div>
+        <div class="overlap-grid" id="user-profiles" style="max-height:480px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#383a40 transparent"></div>
       </div>
       <div class="card fade-in" style="animation-delay:0.15s">
         <h2>Top Overlapping Pairs</h2>
@@ -859,7 +923,7 @@
     </div>
 
     <div class="card full graph-container fade-in" style="animation-delay:0.1s">
-      <h2>Knowledge Graph</h2>
+      <h2 style="display:flex;align-items:center;gap:8px">Knowledge Graph<a id="graph-fullscreen-link" href="/graph" target="_blank" title="Open full-screen graph explorer" style="color:#8e9297;transition:color 0.15s;display:inline-flex;align-items:center" onmouseover="this.style.color='#5865f2'" onmouseout="this.style.color='#8e9297'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></h2>
       <div class="view-tabs">
         <button class="view-btn active" data-view="links_to">LINKS_TO</button>
         <button class="view-btn" data-view="categories">Categories</button>
@@ -867,7 +931,12 @@
         <button class="view-btn" data-view="all">All Edges</button>
       </div>
       <div class="tooltip" id="tooltip"></div>
-      <svg id="graph"></svg>
+      <canvas id="graph-canvas-dash"></canvas>
+      <div class="graph-legend">
+        <div class="graph-legend-item"><span class="dot" style="background:#5865f2"></span> Links</div>
+        <div class="graph-legend-item"><span class="dot" style="background:#fee75c"></span> Categories</div>
+        <div class="graph-legend-item"><span class="dot" style="background:#eb459e"></span> Users</div>
+      </div>
     </div>
     <div class="card full fade-in" style="animation-delay:0.15s">
       <div class="table-header">
@@ -877,6 +946,13 @@
             <svg viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
             <input type="text" class="search-input" id="filter-search" placeholder="Search links...">
           </div>
+          <select id="filter-sort">
+            <option value="savedAt:desc">Newest</option>
+            <option value="forgeScore:desc">Top Score</option>
+            <option value="forgeScore:asc">Lowest Score</option>
+            <option value="title:asc">Title A-Z</option>
+            <option value="domain:asc">Domain</option>
+          </select>
           <input type="number" id="filter-score" placeholder="Min score" min="0" max="1" step="0.05" value="0" style="width:100px">
           <select id="filter-type">
             <option value="">All types</option>
@@ -893,20 +969,7 @@
           </select>
         </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th data-sort="forgeScore">Score <span class="sort-arrow">▼</span></th>
-              <th data-sort="contentType">Type <span class="sort-arrow">▼</span></th>
-              <th data-sort="title">Title <span class="sort-arrow">▼</span></th>
-              <th data-sort="domain">Domain <span class="sort-arrow">▼</span></th>
-              <th data-sort="savedAt" class="sorted">Added <span class="sort-arrow">▼</span></th>
-            </tr>
-          </thead>
-          <tbody id="link-table"></tbody>
-        </table>
-      </div>
+      <div class="link-list" id="link-list"></div>
       <div class="pagination" id="pagination"></div>
     </div>
   </div>
@@ -943,7 +1006,43 @@
 let currentUser = '';
 let scoreChart = null;
 let typeChart = null;
-let simulation = null;
+let qualityChart = null;
+let integrationChart = null;
+let timelineChart = null;
+// Canvas graph state
+let graphSim = null;
+let graphQt = null;
+let graphTf = d3.zoomIdentity;
+let graphHover = null;
+let graphDragNode = null;
+let graphDragging = false;
+let graphView = 'links_to';
+let graphDrawFn = null;
+let graphFindNodeFn = null;
+const GR_EDGE_COLORS = { LINKS_TO: '#5865f2', CATEGORIZED_IN: '#fee75c', MENTIONS_TECH: '#3498db', MENTIONS_TOOL: '#57f287', SHARED_BY: '#eb459e', RELATED_TO: '#8e9297', SUBCATEGORY_OF: '#fee75c', USED_WITH: '#8e9297', TAGGED_WITH: '#b07cc6' };
+const GR_NODE_COLORS = { category: '#fee75c', technology: '#3498db', tool: '#57f287', user: '#eb459e' };
+function grNodeColor(n) { return n.nodeType === 'link' ? scoreColor(n.forgeScore || 0) : (GR_NODE_COLORS[n.nodeType] || '#6d7078'); }
+function grNodeRadius(n) {
+  const base = { link: 3, category: 5, technology: 4, tool: 4, user: 8 };
+  let r = base[n.nodeType] || 3;
+  if (n.connectionCount) r += Math.sqrt(n.connectionCount) * 0.6;
+  if (n.nodeType === 'link') r += (n.forgeScore || 0) * 3;
+  return r;
+}
+function grEdgeAlpha(type) {
+  if (graphView === 'all') return type === 'SHARED_BY' ? 0.15 : 0.3;
+  if (graphView === 'links_to') return type === 'LINKS_TO' ? 0.5 : 0.04;
+  if (graphView === 'categories') return type === 'CATEGORIZED_IN' ? 0.4 : 0.04;
+  if (graphView === 'shared_by') return type === 'SHARED_BY' ? 0.5 : 0.04;
+  return 0.3;
+}
+function grNodeAlpha(n) {
+  if (graphView === 'all') return n.nodeType === 'user' ? 0.7 : 1;
+  if (graphView === 'links_to') return n.nodeType === 'link' ? 1 : 0.2;
+  if (graphView === 'categories') return n.nodeType === 'category' ? 1 : (n.nodeType === 'link' ? 0.8 : 0.2);
+  if (graphView === 'shared_by') return n.nodeType === 'user' ? 1 : (n.nodeType === 'link' ? 0.8 : 0.15);
+  return 1;
+}
 let currentPage = 0;
 const PAGE_SIZE = 25;
 
@@ -996,8 +1095,6 @@ function escapeHtml(s) {
 }
 
 // --- Tab system ---
-const MAX_VISIBLE_TABS = 5;
-
 function selectTab(discordId, displayName) {
   currentUser = discordId;
   currentPage = 0;
@@ -1006,28 +1103,14 @@ function selectTab(discordId, displayName) {
   // Update tab active states
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const activeTab = document.querySelector(`.tab[data-user="${discordId}"]`);
-  if (activeTab) activeTab.classList.add('active');
-
-  // Update overflow menu active states
-  document.querySelectorAll('.tab-overflow-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.user === discordId);
-  });
-  const overflowBtn = document.querySelector('.tab-overflow-btn');
-  if (overflowBtn) {
-    const hasActive = document.querySelector('.tab-overflow-item.active');
-    overflowBtn.classList.toggle('has-active', !!hasActive);
-    if (hasActive) {
-      overflowBtn.querySelector('.overflow-label').textContent = displayName;
-    } else {
-      overflowBtn.querySelector('.overflow-label').textContent = 'More';
-    }
+  if (activeTab) {
+    activeTab.classList.add('active');
+    activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }
 
-  // Close overflow menu
-  const menu = document.querySelector('.tab-overflow-menu');
-  if (menu) menu.classList.remove('open');
-
   loadStats();
+  loadExtraCharts();
+  loadTechAndCategories();
   loadLinks();
   loadGraph();
   loadOverlap();
@@ -1040,11 +1123,8 @@ async function loadUsers() {
 
   // Sort by link count descending for tab ordering
   const sorted = [...data.users].sort((a, b) => b.linkCount - a.linkCount);
-  const visibleUsers = sorted.slice(0, MAX_VISIBLE_TABS);
-  const overflowUsers = sorted.slice(MAX_VISIBLE_TABS);
 
-  // Create visible tabs
-  visibleUsers.forEach((u) => {
+  sorted.forEach((u) => {
     const origIdx = data.users.indexOf(u);
     const tab = document.createElement('div');
     tab.className = 'tab';
@@ -1069,47 +1149,7 @@ async function loadUsers() {
     bar.appendChild(tab);
   });
 
-  // Create overflow dropdown if needed
-  if (overflowUsers.length > 0) {
-    const overflow = document.createElement('div');
-    overflow.className = 'tab-overflow';
-
-    const btn = document.createElement('button');
-    btn.className = 'tab-overflow-btn';
-    btn.innerHTML = `<span class="overflow-label">More</span> <span style="font-size:10px">▼</span> <span class="link-count">${overflowUsers.length}</span>`;
-
-    const menu = document.createElement('div');
-    menu.className = 'tab-overflow-menu';
-
-    overflowUsers.forEach((u) => {
-      const origIdx = data.users.indexOf(u);
-      const item = document.createElement('div');
-      item.className = 'tab-overflow-item';
-      item.dataset.user = u.discordId;
-      const color = USER_COLORS[origIdx % USER_COLORS.length];
-      item.innerHTML = `
-        <div class="minor-user-avatar" style="background:${color};width:20px;height:20px;font-size:10px">${escapeHtml(u.displayName.charAt(0).toUpperCase())}</div>
-        <span style="flex:1">${escapeHtml(u.displayName)}</span>
-        <span class="link-count">${u.linkCount}</span>
-      `;
-      item.addEventListener('click', () => selectTab(u.discordId, u.displayName));
-      menu.appendChild(item);
-    });
-
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menu.classList.toggle('open');
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', () => menu.classList.remove('open'));
-
-    overflow.appendChild(btn);
-    overflow.appendChild(menu);
-    bar.appendChild(overflow);
-  }
-
-  // Tab click handler for visible tabs
+  // Tab click handler
   bar.addEventListener('click', (e) => {
     const tab = e.target.closest('.tab');
     if (!tab) return;
@@ -1178,6 +1218,188 @@ async function loadStats() {
   });
 }
 
+const QUALITY_COLORS = { high: '#57f287', medium: '#fee75c', low: '#ed4245', unknown: '#8e9297' };
+const DIFF_COLORS = { beginner: '#57f287', intermediate: '#3498db', advanced: '#e67e22', expert: '#ed4245', academic: '#b07cc6' };
+
+async function loadExtraCharts() {
+  // Fire all 5 requests in parallel
+  const [qualRes, intRes, domRes, diffRes, tlRes] = await Promise.all([
+    apiFetch('/api/stats/quality').then(r => r.json()),
+    apiFetch('/api/stats/integration').then(r => r.json()),
+    apiFetch('/api/stats/domains').then(r => r.json()),
+    apiFetch('/api/stats/difficulty').then(r => r.json()),
+    apiFetch('/api/stats/timeline').then(r => r.json()),
+  ]);
+
+  // Quality doughnut
+  if (qualityChart) { qualityChart.destroy(); qualityChart = null; }
+  qualityChart = new Chart(document.getElementById('qualityChart'), {
+    type: 'doughnut',
+    data: {
+      labels: qualRes.map(q => q.quality),
+      datasets: [{
+        data: qualRes.map(q => q.count),
+        backgroundColor: qualRes.map(q => QUALITY_COLORS[q.quality] || '#8e9297'),
+        borderWidth: 2, borderColor: '#2b2d31',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: { legend: { position: 'right', labels: { color: '#dbdee1', font: { size: 11 }, padding: 8, usePointStyle: true, pointStyleWidth: 10 } } }
+    }
+  });
+
+  // Integration type doughnut
+  if (integrationChart) { integrationChart.destroy(); integrationChart = null; }
+  const intColors = ['#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#f0b232', '#9b59b6', '#1abc9c', '#8e9297'];
+  integrationChart = new Chart(document.getElementById('integrationChart'), {
+    type: 'doughnut',
+    data: {
+      labels: intRes.map(i => i.integrationType),
+      datasets: [{
+        data: intRes.map(i => i.count),
+        backgroundColor: intRes.map((_, idx) => intColors[idx % intColors.length]),
+        borderWidth: 2, borderColor: '#2b2d31',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: { legend: { position: 'right', labels: { color: '#dbdee1', font: { size: 11 }, padding: 8, usePointStyle: true, pointStyleWidth: 10 } } }
+    }
+  });
+
+  // Domain leaderboard
+  const domContainer = document.getElementById('domain-leaderboard');
+  const maxDom = domRes.length > 0 ? domRes[0].count : 1;
+  domContainer.innerHTML = domRes.map((d, i) => `
+    <div class="domain-row">
+      <span class="domain-rank">${i + 1}</span>
+      <img class="domain-icon" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(d.domain)}&sz=32" alt="" loading="lazy">
+      <span class="domain-name">${escapeHtml(d.domain)}</span>
+      <div class="domain-bar-wrap"><div class="domain-bar" style="width:${Math.round(d.count / maxDom * 100)}%"></div></div>
+      <span class="domain-count">${d.count}</span>
+    </div>
+  `).join('');
+
+  // Difficulty spread
+  const diffContainer = document.getElementById('difficulty-spread');
+  if (diffRes.length === 0) {
+    diffContainer.innerHTML = '<span style="color:#6d7078;font-size:13px">No difficulty data</span>';
+  } else {
+    diffContainer.innerHTML = diffRes.map(d => `
+      <div class="diff-pill">
+        <span class="diff-count" style="color:${DIFF_COLORS[d.difficulty] || '#8e9297'}">${d.count}</span>
+        <span class="diff-label">${escapeHtml(d.difficulty)}</span>
+      </div>
+    `).join('');
+  }
+
+  // Timeline sparkline
+  if (timelineChart) { timelineChart.destroy(); timelineChart = null; }
+  timelineChart = new Chart(document.getElementById('timelineChart'), {
+    type: 'line',
+    data: {
+      labels: tlRes.map(t => t.week),
+      datasets: [{
+        data: tlRes.map(t => t.count),
+        borderColor: '#5865f2',
+        backgroundColor: '#5865f233',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        x: { ticks: { color: '#6d7078', font: { size: 10 }, maxRotation: 0, maxTicksLimit: 12 }, grid: { color: '#33363b44' } },
+        y: { ticks: { color: '#8e9297', font: { size: 11 } }, grid: { color: '#33363b' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+async function loadTechAndCategories() {
+  const [techs, tree] = await Promise.all([
+    apiFetch('/api/stats/tech-landscape').then(r => r.json()),
+    apiFetch('/api/stats/category-tree').then(r => r.json()),
+  ]);
+
+  // Tech landscape bubble chart
+  const container = document.getElementById('tech-landscape');
+  const detailEl = document.getElementById('tech-detail');
+  if (techs.length === 0) {
+    container.innerHTML = '<span style="color:#6d7078;font-size:13px">No technology data</span>';
+  } else {
+    const maxCount = techs[0].linkCount;
+    container.innerHTML = '<div class="tech-bubbles">' + techs.map((t, i) => {
+      const size = Math.max(40, Math.min(90, 40 + (t.linkCount / maxCount) * 50));
+      const hue = Math.round((1 - t.avgScore) * 120); // green(high) to red(low)
+      const bg = `hsl(${hue}, 65%, 40%)`;
+      return `<div class="tech-bubble" data-idx="${i}" style="width:${size}px;height:${size}px;background:${bg}" title="${escapeHtml(t.name)} — ${t.linkCount} links, avg ${t.avgScore}"><span>${escapeHtml(t.name)}</span></div>`;
+    }).join('') + '</div>';
+
+    container.addEventListener('click', (e) => {
+      const bubble = e.target.closest('.tech-bubble');
+      if (!bubble) return;
+      const idx = parseInt(bubble.dataset.idx);
+      const t = techs[idx];
+      container.querySelectorAll('.tech-bubble').forEach(b => b.classList.remove('active'));
+      bubble.classList.add('active');
+
+      let html = `<div class="tech-detail-header">${escapeHtml(t.name)} <span style="font-size:12px;color:#8e9297;font-weight:400">${t.linkCount} links · avg score ${t.avgScore}</span></div>`;
+      if (t.tools.length > 0) {
+        html += `<div style="font-size:11px;color:#6d7078;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.3px">Tools (USED_WITH)</div>`;
+        html += '<div class="tech-detail-row">' + t.tools.map(tool =>
+          tool.url ? `<a class="tech-tool-pill" href="${escapeHtml(tool.url)}" target="_blank">${escapeHtml(tool.name)}</a>`
+                   : `<span class="tech-tool-pill">${escapeHtml(tool.name)}</span>`
+        ).join('') + '</div>';
+      } else {
+        html += '<div style="font-size:12px;color:#6d7078">No tools linked</div>';
+      }
+      detailEl.innerHTML = html;
+      detailEl.style.display = 'block';
+    });
+  }
+
+  // Category tree
+  const treeEl = document.getElementById('category-tree');
+  if (tree.length === 0) {
+    treeEl.innerHTML = '<span style="color:#6d7078;font-size:13px">No category hierarchy data</span>';
+  } else {
+    treeEl.innerHTML = tree.map((p, i) => `
+      <div class="cat-tree-parent">
+        <div class="cat-tree-parent-header" data-tree-idx="${i}">
+          <span class="cat-tree-toggle">▶</span>
+          <span class="cat-tree-name">${escapeHtml(p.name)}</span>
+          <span class="cat-tree-count">${p.linkCount} links · ${p.children.length} sub</span>
+        </div>
+        <div class="cat-tree-children" id="cat-tree-${i}">
+          ${p.children.map(c => `
+            <div class="cat-tree-child">
+              <span class="cat-tree-child-name">${escapeHtml(c.name)}</span>
+              <span class="cat-tree-child-count">${c.linkCount}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    treeEl.addEventListener('click', (e) => {
+      const header = e.target.closest('.cat-tree-parent-header');
+      if (!header) return;
+      const idx = header.dataset.treeIdx;
+      const children = document.getElementById('cat-tree-' + idx);
+      const toggle = header.querySelector('.cat-tree-toggle');
+      children.classList.toggle('open');
+      toggle.classList.toggle('open');
+    });
+  }
+}
+
 // --- Links Table ---
 let allLinks = [];
 let sortKey = 'savedAt';
@@ -1204,7 +1426,9 @@ function getFilteredLinks() {
     (l.url || '').toLowerCase().includes(search) ||
     (l.purpose || '').toLowerCase().includes(search) ||
     (l.authors || []).some(a => a.toLowerCase().includes(search)) ||
-    (l.keyConcepts || []).some(c => c.toLowerCase().includes(search))
+    (l.keyConcepts || []).some(c => c.toLowerCase().includes(search)) ||
+    (l.categories || []).some(c => c.toLowerCase().includes(search)) ||
+    (l.integrationType || '').toLowerCase().includes(search)
   );
 
   filtered.sort((a, b) => {
@@ -1217,6 +1441,23 @@ function getFilteredLinks() {
   return filtered;
 }
 
+function relativeDate(d) {
+  if (!d) return '';
+  const diff = Date.now() - new Date(d).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return weeks + 'w ago';
+  const months = Math.floor(days / 30);
+  if (months < 12) return months + 'mo ago';
+  return Math.floor(days / 365) + 'y ago';
+}
+
 function renderTable() {
   const filtered = getFilteredLinks();
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -1224,29 +1465,65 @@ function renderTable() {
 
   const start = currentPage * PAGE_SIZE;
   const page = filtered.slice(start, start + PAGE_SIZE);
+  const container = document.getElementById('link-list');
 
   if (page.length === 0) {
-    document.getElementById('link-table').innerHTML = `
-      <tr><td colspan="5" class="empty-state">No links match your filters</td></tr>
-    `;
+    container.innerHTML = '<div class="empty-state">No links match your filters</div>';
   } else {
-    document.getElementById('link-table').innerHTML = page.map(l => `
-      <tr>
-        <td>
-          <div class="score-cell">
-            <span class="score-bar" style="width:${Math.round(l.forgeScore * 50)}px;background:${scoreColor(l.forgeScore)}"></span>
-            ${l.forgeScore.toFixed(2)}
+    container.innerHTML = page.map(l => {
+      const sc = scoreColor(l.forgeScore);
+      const isFile = l.url.startsWith('file:///');
+      const title = isFile ? (l.url.split('/').pop() || l.title || l.url) : (l.title || l.url).slice(0, 100);
+      const concepts = (l.keyConcepts || []).slice(0, 5);
+      const categories = (l.categories || []).slice(0, 3);
+      const detailHref = '/link/' + encodeURIComponent(l.url);
+      const tag = 'a';
+      const href = ` href="${detailHref}"`;
+
+      // Quality badge
+      const qualBadge = l.quality ? `<span class="badge-quality badge-quality-${l.quality}">${l.quality}</span>` : '';
+
+      // Integration type label
+      const integLabel = l.integrationType ? `<span class="integ-label">${escapeHtml(l.integrationType)}</span>` : '';
+
+      const extIcon = isFile ? '' : `<a href="${escapeHtml(l.url)}" target="_blank" onclick="event.stopPropagation()" style="color:#6d7078;display:inline-flex;align-items:center;margin-left:4px" title="Open original link"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
+      let row2 = isFile
+        ? '<span style="color:#6d7078">local file</span>'
+        : `<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(l.domain)}&sz=32" alt="" loading="lazy"><span>${escapeHtml(l.domain)}</span>${extIcon}`;
+      if (l.authors && l.authors.length) row2 += ` <span style="color:#4f545c">·</span> ${escapeHtml(l.authors.join(', '))}`;
+      if (l.difficulty) row2 += ` <span class="badge" style="font-size:10px;padding:1px 5px;background:#2b2d31">${escapeHtml(l.difficulty)}</span>`;
+      if (integLabel) row2 += ` <span style="color:#4f545c">·</span> ${integLabel}`;
+
+      const conceptsHtml = concepts.length
+        ? `<div class="link-item-concepts">${concepts.map(c => `<span class="concept-pill">${escapeHtml(c)}</span>`).join('')}</div>`
+        : '';
+
+      const catsHtml = categories.length
+        ? `<div class="link-item-concepts">${categories.map(c => `<span class="cat-pill">${escapeHtml(c)}</span>`).join('')}</div>`
+        : '';
+
+      // Purpose subtitle
+      const purposeHtml = l.purpose ? `<div class="link-item-purpose">${escapeHtml(l.purpose)}</div>` : '';
+
+      return `<${tag} class="link-item" style="border-left-color:${sc}"${href}>
+        <div class="link-item-score" style="color:${sc}">${l.forgeScore.toFixed(2)}</div>
+        <div class="link-item-body">
+          <div class="link-item-row1">
+            <span class="badge badge-${l.contentType}">${l.contentType}</span>
+            ${qualBadge}
+            <span class="link-item-title" title="${escapeHtml(l.purpose || '')}">${escapeHtml(title)}</span>
+            <span class="link-item-date">${relativeDate(l.savedAt)}</span>
           </div>
-        </td>
-        <td><span class="badge badge-${l.contentType}">${l.contentType}</span></td>
-        <td>${l.url.startsWith('file:///') ? `<span title="${escapeHtml(l.purpose || '')}" style="color:#dbdee1">${escapeHtml(l.url.split('/').pop() || l.title || l.url)}</span>` : `<a href="${escapeHtml(l.url)}" target="_blank" title="${escapeHtml(l.purpose || '')}">${escapeHtml((l.title || l.url).slice(0, 90))}</a>`}${(l.authors && l.authors.length) || l.difficulty ? `<div style="font-size:11px;color:#8e9297;margin-top:2px">${l.authors && l.authors.length ? escapeHtml(l.authors.join(', ')) : ''}${l.difficulty ? ` <span class="badge" style="font-size:10px;padding:1px 5px;background:#33363b">${l.difficulty}</span>` : ''}</div>` : ''}</td>
-        <td>${l.url.startsWith('file:///') ? `<div class="domain-cell" style="color:#8e9297">local file</div>` : `<div class="domain-cell"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(l.domain)}&sz=32" alt="" loading="lazy">${escapeHtml(l.domain)}</div>`}</td>
-        <td style="white-space:nowrap;color:#8e9297">${l.savedAt ? new Date(l.savedAt).toLocaleDateString() : '-'}</td>
-      </tr>
-    `).join('');
+          ${purposeHtml}
+          <div class="link-item-row2">${row2}</div>
+          ${conceptsHtml}
+          ${catsHtml}
+        </div>
+      </${tag}>`;
+    }).join('');
   }
 
-  // Pagination controls
+  // Pagination
   const pag = document.getElementById('pagination');
   if (filtered.length <= PAGE_SIZE) {
     pag.innerHTML = `<span>${filtered.length} link${filtered.length !== 1 ? 's' : ''}</span><span></span>`;
@@ -1257,20 +1534,19 @@ function renderTable() {
   btns += `<button class="page-btn" onclick="goPage(0)" ${currentPage === 0 ? 'disabled' : ''}>&laquo;</button>`;
   btns += `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>&lsaquo;</button>`;
 
-  // Show page numbers with ellipsis
   const maxVisible = 7;
   let pages = [];
   if (totalPages <= maxVisible) {
     pages = Array.from({ length: totalPages }, (_, i) => i);
   } else {
     pages = [0];
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages - 2, currentPage + 2);
-    if (currentPage <= 3) { start = 1; end = 5; }
-    if (currentPage >= totalPages - 4) { start = totalPages - 6; end = totalPages - 2; }
-    if (start > 1) pages.push(-1); // ellipsis
-    for (let i = start; i <= end; i++) pages.push(i);
-    if (end < totalPages - 2) pages.push(-1);
+    let s = Math.max(1, currentPage - 2);
+    let e = Math.min(totalPages - 2, currentPage + 2);
+    if (currentPage <= 3) { s = 1; e = 5; }
+    if (currentPage >= totalPages - 4) { s = totalPages - 6; e = totalPages - 2; }
+    if (s > 1) pages.push(-1);
+    for (let i = s; i <= e; i++) pages.push(i);
+    if (e < totalPages - 2) pages.push(-1);
     pages.push(totalPages - 1);
   }
 
@@ -1296,28 +1572,17 @@ function goPage(p) {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   currentPage = Math.max(0, Math.min(p, totalPages - 1));
   renderTable();
-  // Scroll table into view
-  document.querySelector('.table-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Scroll list into view
+  document.querySelector('.link-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Sort header clicks
-document.querySelectorAll('th[data-sort]').forEach(th => {
-  th.addEventListener('click', () => {
-    const key = th.dataset.sort;
-    if (sortKey === key) sortAsc = !sortAsc;
-    else { sortKey = key; sortAsc = false; }
-
-    // Update sort arrow visual
-    document.querySelectorAll('th[data-sort]').forEach(h => {
-      h.classList.remove('sorted');
-      h.querySelector('.sort-arrow').textContent = '▼';
-    });
-    th.classList.add('sorted');
-    th.querySelector('.sort-arrow').textContent = sortAsc ? '▲' : '▼';
-
-    currentPage = 0;
-    renderTable();
-  });
+// Sort dropdown
+document.getElementById('filter-sort').addEventListener('change', (e) => {
+  const [key, dir] = e.target.value.split(':');
+  sortKey = key;
+  sortAsc = dir === 'asc';
+  currentPage = 0;
+  renderTable();
 });
 
 // Filter event listeners
@@ -1329,136 +1594,169 @@ document.getElementById('filter-search').addEventListener('input', () => {
 document.getElementById('filter-score').addEventListener('input', () => { currentPage = 0; renderTable(); });
 document.getElementById('filter-type').addEventListener('change', () => { currentPage = 0; renderTable(); });
 
-// --- Force Graph ---
+// --- Force Graph (Canvas) ---
 async function loadGraph() {
-  const res = await apiFetch('/api/graph' + qs({ user: currentUser }));
-  const data = await res.json();
-
-  const svgEl = document.getElementById('graph');
-  svgEl.innerHTML = '';
-  if (simulation) { simulation.stop(); simulation = null; }
+  if (graphSim) { graphSim.stop(); graphSim = null; }
+  graphHover = null;
+  graphTf = d3.zoomIdentity;
+  graphView = 'links_to';
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'links_to'));
 
   const container = document.querySelector('.graph-container');
-  const svg = d3.select('#graph');
+  const canvas = document.getElementById('graph-canvas-dash');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
   const tooltip = document.getElementById('tooltip');
-  const width = container.clientWidth;
-  const height = 560;
-  svg.attr('viewBox', [0, 0, width, height]);
 
-  simulation = d3.forceSimulation(data.nodes)
-    .force('link', d3.forceLink(data.edges).id(d => d.id).distance(80))
-    .force('charge', d3.forceManyBody().strength(-120))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide(12));
+  const res = await apiFetch('/api/graph' + qs({ user: currentUser }));
+  const data = await res.json();
+  const nodes = data.nodes;
+  const edges = data.edges;
 
-  const g = svg.append('g');
-  svg.call(d3.zoom().scaleExtent([0.2, 5]).on('zoom', e => g.attr('transform', e.transform)));
+  // Size canvas to fill remaining space in card
+  const cr = container.getBoundingClientRect();
+  const canvasR = canvas.getBoundingClientRect();
+  const w = Math.floor(cr.width - 40);
+  const h = Math.floor(cr.bottom - canvasR.top - 20);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
 
-  const link = g.append('g')
-    .selectAll('line')
-    .data(data.edges)
-    .join('line')
-    .attr('stroke', d => {
-      if (d.type === 'LINKS_TO') return '#5865f2';
-      if (d.type === 'SHARED_BY') return '#57f287';
-      return '#3f4147';
-    })
-    .attr('stroke-width', d => d.type === 'LINKS_TO' ? 2 : d.type === 'SHARED_BY' ? 1 : 0.8)
-    .attr('stroke-opacity', d => {
-      // Default view: LINKS_TO focused
-      if (d.type === 'LINKS_TO') return 0.8;
-      return 0.06;
-    })
-    .attr('stroke-dasharray', d => d.type === 'SHARED_BY' ? '4,3' : null);
+  // Draw
+  graphDrawFn = function() {
+    const cw = canvas.width, ch = canvas.height;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.setTransform(dpr * graphTf.k, 0, 0, dpr * graphTf.k, dpr * graphTf.x, dpr * graphTf.y);
+    const zk = graphTf.k;
 
-  const node = g.append('g')
-    .selectAll('circle')
-    .data(data.nodes)
-    .join('circle')
-    .attr('r', d => {
-      if (d.nodeType === 'user') return 10;
-      if (d.nodeType === 'category') return 5;
-      return 4 + d.forgeScore * 8;
-    })
-    .attr('fill', d => {
-      if (d.nodeType === 'user') return '#57f287';
-      if (d.nodeType === 'category') return '#fee75c';
-      return scoreColor(d.forgeScore);
-    })
-    .attr('stroke', d => d.nodeType === 'user' ? '#fff' : '#1a1b1e')
-    .attr('stroke-width', d => d.nodeType === 'user' ? 2 : 0.5)
-    .attr('opacity', d => {
-      // Default: LINKS_TO focused
-      if (d.nodeType === 'link') return 1;
-      return 0.2;
-    })
-    .attr('cursor', d => d.nodeType === 'link' && !d.id.startsWith('file:///') ? 'pointer' : 'default')
-    .call(d3.drag()
-      .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
-      .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
-    )
-    .on('mouseover', (e, d) => {
-      tooltip.style.opacity = 1;
-      if (d.nodeType === 'user') {
-        tooltip.innerHTML = `<div class="tt-title">${escapeHtml(d.title)}</div><div class="tt-domain">User</div>`;
-      } else if (d.nodeType === 'category') {
-        tooltip.innerHTML = `<div class="tt-title">${escapeHtml(d.title)}</div><div class="tt-domain">Category</div>`;
-      } else {
-        tooltip.innerHTML = `<div class="tt-title">${escapeHtml(d.title || d.id)}</div><div class="tt-domain">${escapeHtml(d.domain)}</div><div class="tt-score">Forge: ${d.forgeScore.toFixed(2)} | ${d.contentType}</div>`;
+    // Edges
+    for (const e of edges) {
+      if (!e.source?.x) continue;
+      ctx.beginPath();
+      ctx.moveTo(e.source.x, e.source.y);
+      ctx.lineTo(e.target.x, e.target.y);
+      let alpha = grEdgeAlpha(e.type);
+      if (graphHover) {
+        const sid = e.source.id ?? e.source, tid = e.target.id ?? e.target;
+        alpha = (sid === graphHover.id || tid === graphHover.id) ? 0.8 : Math.min(alpha, 0.03);
       }
-      tooltip.style.left = (e.offsetX + 15) + 'px';
-      tooltip.style.top = (e.offsetY - 10) + 'px';
-    })
-    .on('mouseout', () => { tooltip.style.opacity = 0; })
-    .on('click', (e, d) => {
-      if (d.nodeType === 'link' && !d.id.startsWith('file:///')) window.open(d.id, '_blank');
+      ctx.strokeStyle = GR_EDGE_COLORS[e.type] || '#3f4147';
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = (graphHover && ((e.source.id ?? e.source) === graphHover.id || (e.target.id ?? e.target) === graphHover.id)) ? 1.5 : 0.5;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Nodes
+    for (const n of nodes) {
+      if (n.x == null) continue;
+      const r = grNodeRadius(n);
+      ctx.globalAlpha = grNodeAlpha(n);
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = grNodeColor(n);
+      ctx.fill();
+      if (n.nodeType === 'user') {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Labels at zoom > 1.5
+    if (zk > 1.5) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const minCC = zk > 3 ? 0 : zk > 2 ? 2 : 5;
+      for (const n of nodes) {
+        if (n.x == null) continue;
+        if (n.nodeType !== 'user' && (n.connectionCount || 0) < minCC) continue;
+        const label = (n.title || n.id || '').slice(0, 25);
+        if (!label) continue;
+        const r = grNodeRadius(n);
+        const fs = Math.max(7, Math.min(11, 9 / zk));
+        ctx.font = `${fs}px -apple-system,sans-serif`;
+        const fadeA = Math.min(1, (zk - 1.5) / 1);
+        ctx.globalAlpha = fadeA * 0.9;
+        ctx.fillStyle = '#b5bac1';
+        ctx.fillText(label, n.x, n.y + r + 5 + fs / 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Hover ring
+    if (graphHover?.x != null) {
+      const r = grNodeRadius(graphHover);
+      ctx.beginPath();
+      ctx.arc(graphHover.x, graphHover.y, r + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.5;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  };
+
+  // Hit detection
+  graphFindNodeFn = function(cx, cy) {
+    if (!graphQt) return null;
+    const gx = (cx - graphTf.x) / graphTf.k, gy = (cy - graphTf.y) / graphTf.k;
+    let closest = null, bestD = Infinity;
+    graphQt.visit((quad, x0, y0, x1, y1) => {
+      if (!quad.length) {
+        let nd = quad.data;
+        while (nd) {
+          const r = grNodeRadius(nd) / graphTf.k * 1.5 + 5 / graphTf.k;
+          const dx = gx - nd.x, dy = gy - nd.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < r && d < bestD) { bestD = d; closest = nd; }
+          nd = quad.next;
+        }
+      }
+      const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, hs = Math.max(x1 - x0, y1 - y0) / 2;
+      return (Math.abs(gx - mx) - hs > 30 / graphTf.k) || (Math.abs(gy - my) - hs > 30 / graphTf.k);
+    });
+    return closest;
+  };
+
+  // Simulation
+  const n = nodes.length;
+  const charge = n > 500 ? -30 : -80;
+  const dist = n > 500 ? 60 : 80;
+  graphSim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(edges).id(d => d.id).distance(dist).strength(0.3))
+    .force('charge', d3.forceManyBody().strength(charge).distanceMax(300))
+    .force('center', d3.forceCenter(w / 2, h / 2))
+    .force('collision', d3.forceCollide(d => grNodeRadius(d) + 1))
+    .alphaDecay(0.02)
+    .on('tick', () => {
+      graphQt = d3.quadtree().x(d => d.x).y(d => d.y).addAll(nodes);
+      graphDrawFn();
     });
 
-  // User node labels
-  const labels = g.append('g')
-    .selectAll('text')
-    .data(data.nodes.filter(d => d.nodeType === 'user'))
-    .join('text')
-    .attr('font-size', 11)
-    .attr('fill', '#57f287')
-    .attr('text-anchor', 'middle')
-    .attr('dy', -14)
-    .attr('opacity', 0.2)
-    .text(d => d.title);
+  // Zoom (replaces previous via d3 namespace)
+  const zoom = d3.zoom()
+    .scaleExtent([0.1, 8])
+    .filter(ev => {
+      if (ev.type === 'wheel') return true;
+      if (ev.type === 'dblclick') return false;
+      if (ev.type === 'mousedown' && ev.button === 0) return !graphFindNodeFn(ev.offsetX, ev.offsetY);
+      return !ev.button;
+    })
+    .on('zoom', ev => { graphTf = ev.transform; graphDrawFn(); });
+  d3.select(canvas).call(zoom);
 
-  simulation.on('tick', () => {
-    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-    node.attr('cx', d => d.x).attr('cy', d => d.y);
-    labels.attr('x', d => d.x).attr('y', d => d.y);
-  });
-
-  // View tab filtering
+  // View tabs
   document.querySelectorAll('.view-btn').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const view = btn.dataset.view;
-
-      link.transition().duration(300)
-        .attr('stroke-opacity', d => {
-          if (view === 'all') return d.type === 'SHARED_BY' ? 0.15 : 0.5;
-          if (view === 'links_to') return d.type === 'LINKS_TO' ? 0.8 : 0.06;
-          if (view === 'categories') return d.type === 'CATEGORIZED_IN' ? 0.5 : 0.06;
-          if (view === 'shared_by') return d.type === 'SHARED_BY' ? 0.6 : 0.06;
-          return 0.5;
-        });
-      node.transition().duration(300)
-        .attr('opacity', d => {
-          if (view === 'all') return d.nodeType === 'user' ? 0.7 : 1;
-          if (view === 'links_to') return d.nodeType === 'link' ? 1 : 0.2;
-          if (view === 'categories') return d.nodeType === 'category' ? 1 : (d.nodeType === 'link' ? 0.8 : 0.2);
-          if (view === 'shared_by') return d.nodeType === 'user' ? 1 : (d.nodeType === 'link' ? 0.8 : 0.15);
-          return 1;
-        });
-      labels.transition().duration(300)
-        .attr('opacity', view === 'shared_by' || view === 'all' ? 1 : 0.2);
+      graphView = btn.dataset.view;
+      if (graphDrawFn) graphDrawFn();
     };
   });
 }
@@ -1482,15 +1780,11 @@ async function loadOverlap() {
 
 function renderUserProfiles(data) {
   const container = document.getElementById('user-profiles');
-  const minorContainer = document.getElementById('user-profiles-minor');
 
-  // Sort users by link count descending, split into top 5 and the rest
+  // Sort users by link count descending, render all as full cards
   const sorted = [...data.users].sort((a, b) => b.linkCount - a.linkCount);
-  const topUsers = sorted.slice(0, 5);
-  const minorUsers = sorted.slice(5);
 
-  // Render full cards for top users
-  container.innerHTML = topUsers.map((u) => {
+  container.innerHTML = sorted.map((u) => {
     const idx = data.users.indexOf(u);
     const stats = data.userStats[u.discordId] || {};
     const color = USER_COLORS[idx % USER_COLORS.length];
@@ -1500,11 +1794,18 @@ function renderUserProfiles(data) {
     const tagPills = (stats.topTags || []).slice(0, 6).map(t =>
       `<span class="tag-pill">${escapeHtml(t.tag)}<span class="tag-count">${t.count}</span></span>`
     ).join('');
+    const interestPills = (u.interests || []).map(i =>
+      `<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:#5865f222;color:#7983f5;border:1px solid #5865f233">${escapeHtml(i)}</span>`
+    ).join(' ');
+
+    const avatarHtml = u.avatarUrl
+      ? `<img src="${escapeHtml(u.avatarUrl)}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid ${color}">`
+      : `<div class="profile-avatar" style="background:${color}">${escapeHtml(u.displayName.charAt(0).toUpperCase())}</div>`;
 
     return `
       <div class="user-profile-card" style="border-left-color:${color}">
         <div class="profile-header">
-          <div class="profile-avatar" style="background:${color}">${escapeHtml(u.displayName.charAt(0).toUpperCase())}</div>
+          ${avatarHtml}
           <div>
             <div class="profile-name">${escapeHtml(u.displayName)}</div>
             <div style="font-size:12px;color:#8e9297">${u.linkCount} links</div>
@@ -1519,42 +1820,10 @@ function renderUserProfiles(data) {
         <div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Types</div>
         <div style="margin-top:4px">${typeBadges}</div>
         ${tagPills ? `<div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Top Tags</div><div class="tag-cloud">${tagPills}</div>` : ''}
+        ${interestPills ? `<div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Interests</div><div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${interestPills}</div>` : ''}
       </div>
     `;
   }).join('');
-
-  // Render compact rows for minor users
-  if (minorUsers.length === 0) {
-    minorContainer.innerHTML = '';
-    return;
-  }
-
-  const minorRows = minorUsers.map((u) => {
-    const idx = data.users.indexOf(u);
-    const stats = data.userStats[u.discordId] || {};
-    const color = USER_COLORS[idx % USER_COLORS.length];
-    const typeBadges = (stats.topTypes || []).slice(0, 3).map(t =>
-      `<span class="badge badge-${t.type}" style="font-size:9px;padding:2px 5px">${t.type} ${t.count}</span>`
-    ).join(' ');
-
-    return `
-      <div class="minor-user-row">
-        <div class="minor-user-avatar" style="background:${color}">${escapeHtml(u.displayName.charAt(0).toUpperCase())}</div>
-        <span class="minor-user-name">${escapeHtml(u.displayName)}</span>
-        <span class="minor-user-stat"><strong>${u.linkCount}</strong> links</span>
-        <span class="minor-user-stat"><strong>${stats.totalCategories || 0}</strong> cats</span>
-        <span class="minor-user-stat">avg <strong>${stats.avgScore || 0}</strong></span>
-        <div class="minor-user-types">${typeBadges}</div>
-      </div>
-    `;
-  }).join('');
-
-  minorContainer.innerHTML = `
-    <div class="minor-users-header" onclick="this.querySelector('.chevron').classList.toggle('open'); this.nextElementSibling.classList.toggle('open')">
-      <span class="chevron">▶</span> ${minorUsers.length} more users
-    </div>
-    <div class="minor-user-list">${minorRows}</div>
-  `;
 }
 
 function renderOverlapPairs(data) {
@@ -1582,19 +1851,26 @@ function renderOverlapPairs(data) {
   const maxShared = topPairs[0].sharedCategories;
 
   container.innerHTML = topPairs.map(p => {
-    const uA = userMap[p.userA] || { displayName: '?', idx: 0 };
-    const uB = userMap[p.userB] || { displayName: '?', idx: 1 };
+    const uA = userMap[p.userA] || { displayName: '?', idx: 0, avatarUrl: '' };
+    const uB = userMap[p.userB] || { displayName: '?', idx: 1, avatarUrl: '' };
     const colA = USER_COLORS[uA.idx % USER_COLORS.length];
     const colB = USER_COLORS[uB.idx % USER_COLORS.length];
     const barPct = Math.round((p.sharedCategories / maxShared) * 100);
 
+    const avA = uA.avatarUrl
+      ? `<img src="${escapeHtml(uA.avatarUrl)}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid ${colA}">`
+      : `<div class="overlap-pair-avatar" style="background:${colA}">${escapeHtml(uA.displayName.charAt(0).toUpperCase())}</div>`;
+    const avB = uB.avatarUrl
+      ? `<img src="${escapeHtml(uB.avatarUrl)}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:2px solid ${colB}">`
+      : `<div class="overlap-pair-avatar" style="background:${colB}">${escapeHtml(uB.displayName.charAt(0).toUpperCase())}</div>`;
+
     return `
       <div class="overlap-pair">
         <div class="overlap-pair-users">
-          <div class="overlap-pair-avatar" style="background:${colA}">${escapeHtml(uA.displayName.charAt(0).toUpperCase())}</div>
+          ${avA}
           <span style="font-size:13px;color:#dbdee1">${escapeHtml(uA.displayName)}</span>
           <span class="overlap-pair-amp">&amp;</span>
-          <div class="overlap-pair-avatar" style="background:${colB}">${escapeHtml(uB.displayName.charAt(0).toUpperCase())}</div>
+          ${avB}
           <span style="font-size:13px;color:#dbdee1">${escapeHtml(uB.displayName)}</span>
         </div>
         <div class="overlap-pair-bar-wrap">
@@ -1625,7 +1901,10 @@ function renderSharedCategories(data) {
       const count = cat.users[u.discordId];
       if (!count) return '';
       const color = USER_COLORS[i % USER_COLORS.length];
-      return `<div class="shared-cat-pip" style="background:${color}" title="${escapeHtml(u.displayName)}: ${count} links">${count}</div>`;
+      const pipContent = u.avatarUrl
+        ? `<img src="${escapeHtml(u.avatarUrl)}" alt="" style="width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:2px">${count}`
+        : count;
+      return `<div class="shared-cat-pip" style="background:${color}" title="${escapeHtml(u.displayName)}: ${count} links">${pipContent}</div>`;
     }).join('');
 
     return `
@@ -1779,9 +2058,97 @@ async function sendChat() {
   chatInput.focus();
 }
 
+// --- Canvas graph mouse handlers (set up once) ---
+(function() {
+  const canvas = document.getElementById('graph-canvas-dash');
+  const tooltip = document.getElementById('tooltip');
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!graphFindNodeFn || !graphDrawFn) return;
+    if (graphDragging && graphDragNode) {
+      const gx = (e.offsetX - graphTf.x) / graphTf.k;
+      const gy = (e.offsetY - graphTf.y) / graphTf.k;
+      graphDragNode.fx = gx;
+      graphDragNode.fy = gy;
+      graphSim?.alpha(0.3).restart();
+      return;
+    }
+    const node = graphFindNodeFn(e.offsetX, e.offsetY);
+    if (node !== graphHover) {
+      graphHover = node;
+      canvas.style.cursor = node ? 'pointer' : 'grab';
+      if (node) {
+        if (node.nodeType === 'link') {
+          tooltip.innerHTML = `<div class="tt-title">${escapeHtml(node.title || node.id)}</div><div class="tt-domain">${escapeHtml(node.domain || '')}</div><div class="tt-score">Forge: ${(node.forgeScore || 0).toFixed(2)} | ${node.contentType || ''}</div>`;
+        } else {
+          tooltip.innerHTML = `<div class="tt-title">${escapeHtml(node.title)}</div><div class="tt-domain">${node.nodeType}</div>`;
+        }
+        tooltip.style.opacity = 1;
+        tooltip.style.left = (e.offsetX + 15) + 'px';
+        tooltip.style.top = (canvas.offsetTop + e.offsetY - 10) + 'px';
+      } else {
+        tooltip.style.opacity = 0;
+      }
+      graphDrawFn();
+    } else if (node) {
+      tooltip.style.left = (e.offsetX + 15) + 'px';
+      tooltip.style.top = (canvas.offsetTop + e.offsetY - 10) + 'px';
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    graphHover = null;
+    tooltip.style.opacity = 0;
+    if (graphDrawFn) graphDrawFn();
+  });
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (!graphFindNodeFn || e.button !== 0) return;
+    const node = graphFindNodeFn(e.offsetX, e.offsetY);
+    if (node) {
+      graphDragging = true;
+      graphDragNode = node;
+      node.fx = node.x;
+      node.fy = node.y;
+      graphSim?.alphaTarget(0.3).restart();
+      canvas.style.cursor = 'grabbing';
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (graphDragging && graphDragNode) {
+      graphDragging = false;
+      graphDragNode.fx = null;
+      graphDragNode.fy = null;
+      graphDragNode = null;
+      graphSim?.alphaTarget(0);
+      const c = document.getElementById('graph-canvas-dash');
+      if (c) c.style.cursor = graphHover ? 'pointer' : 'grab';
+    }
+  });
+
+  canvas.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    if (!graphFindNodeFn) return;
+    const node = graphFindNodeFn(e.offsetX, e.offsetY);
+    if (node && node.nodeType === 'link' && !node.id.startsWith('file:///')) {
+      window.open(node.id, '_blank');
+    }
+  });
+})();
+
+// Adjust graph fullscreen link for GUID-based auth path
+(function() {
+  const link = document.getElementById('graph-fullscreen-link');
+  const m = location.pathname.match(/^\/d\/([^/]+)/);
+  if (m) link.href = `/d/${m[1]}/graph`;
+})();
+
 // Boot
 loadUsers().then(() => {
   loadStats();
+  loadExtraCharts();
+  loadTechAndCategories();
   loadLinks();
   loadGraph();
   loadOverlap();

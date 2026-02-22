@@ -24,6 +24,22 @@ function resolveHtml(): string {
   return local;
 }
 
+function resolveGraphHtml(): string {
+  const local = path.join(__dirname, "graph.html");
+  if (fs.existsSync(local)) return local;
+  const srcPath = path.join(__dirname, "../../src/dashboard/graph.html");
+  if (fs.existsSync(srcPath)) return srcPath;
+  return local;
+}
+
+function resolveLinkHtml(): string {
+  const local = path.join(__dirname, "link.html");
+  if (fs.existsSync(local)) return local;
+  const srcPath = path.join(__dirname, "../../src/dashboard/link.html");
+  if (fs.existsSync(srcPath)) return srcPath;
+  return local;
+}
+
 const toNum = (val: unknown) => typeof val === "number" ? val : Number(val);
 
 export interface DashboardServer {
@@ -124,6 +140,8 @@ export function createDashboardServer(
 
   let server: ReturnType<typeof app.listen> | null = null;
   const htmlPath = resolveHtml();
+  const graphHtmlPath = resolveGraphHtml();
+  const linkHtmlPath = resolveLinkHtml();
   const loginHtmlPath = path.join(path.dirname(htmlPath), "login.html");
 
   // --- Login page ---
@@ -156,6 +174,9 @@ export function createDashboardServer(
     app.get(`/d/${dashGuid}`, requireAuth, (_req, res) => {
       res.sendFile(htmlPath);
     });
+    app.get(`/d/${dashGuid}/graph`, requireAuth, (_req, res) => {
+      res.sendFile(graphHtmlPath);
+    });
   }
 
   // Legacy /dashboard — redirect to GUID path if auth enabled, else serve directly
@@ -164,6 +185,29 @@ export function createDashboardServer(
       res.redirect(`/d/${dashGuid}`);
     } else {
       res.sendFile(htmlPath);
+    }
+  });
+
+  // Full-screen graph explorer
+  app.get("/graph", (_req, res) => {
+    if (authEnabled) {
+      res.redirect(`/d/${dashGuid}/graph`);
+    } else {
+      res.sendFile(graphHtmlPath);
+    }
+  });
+
+  // Link detail page
+  if (authEnabled) {
+    app.get(`/d/${dashGuid}/link/:encodedUrl`, requireAuth, (_req, res) => {
+      res.sendFile(linkHtmlPath);
+    });
+  }
+  app.get("/link/:encodedUrl", (_req, res) => {
+    if (authEnabled) {
+      res.redirect(`/d/${dashGuid}/link/${_req.params["encodedUrl"]}`);
+    } else {
+      res.sendFile(linkHtmlPath);
     }
   });
 
@@ -388,6 +432,258 @@ export function createDashboardServer(
     }
   });
 
+  // Full graph data API — all node types (except tags) with connection counts
+  app.get("/api/graph/full", async (_req, res) => {
+    // Each parallel query needs its own session (Neo4j doesn't allow concurrent queries on one session)
+    const sessions = Array.from({ length: 7 }, () => neo4jDriver.session());
+    try {
+      const [linksRes, catsRes, techsRes, toolsRes, usersRes, edgesRes, metaRes] = await Promise.all([
+        sessions[0]!.run(`
+          MATCH (l:Link)
+          OPTIONAL MATCH (l)-[r]-() WHERE NOT type(r) = 'TAGGED_WITH'
+          RETURN l.url AS id, l.title AS title, l.domain AS domain,
+                 COALESCE(l.forgeScore, 0) AS forgeScore,
+                 COALESCE(l.contentType, 'reference') AS contentType,
+                 COALESCE(l.quality, '') AS quality,
+                 COALESCE(l.integrationType, '') AS integrationType,
+                 COALESCE(l.difficulty, '') AS difficulty,
+                 l.savedAt AS savedAt,
+                 count(r) AS connectionCount
+        `),
+        sessions[1]!.run(`
+          MATCH (c:Category)
+          OPTIONAL MATCH (c)-[r]-()
+          RETURN c.name AS name, count(r) AS connectionCount
+        `),
+        sessions[2]!.run(`
+          MATCH (t:Technology)
+          OPTIONAL MATCH (t)-[r]-()
+          RETURN t.name AS name, count(r) AS connectionCount
+        `),
+        sessions[3]!.run(`
+          MATCH (t:Tool)
+          OPTIONAL MATCH (t)-[r]-()
+          RETURN t.name AS name, count(r) AS connectionCount
+        `),
+        sessions[4]!.run(`
+          MATCH (u:User)
+          OPTIONAL MATCH (u)-[r]-()
+          RETURN u.discordId AS discordId, u.displayName AS displayName,
+                 u.avatarUrl AS avatarUrl, u.interests AS interests,
+                 count(r) AS connectionCount
+        `),
+        sessions[5]!.run(`
+          MATCH (a)-[r]->(b)
+          WHERE NOT type(r) = 'TAGGED_WITH' AND NOT a:Tag AND NOT b:Tag
+          RETURN
+            CASE
+              WHEN a:Link THEN a.url
+              WHEN a:Category THEN 'cat:' + a.name
+              WHEN a:Technology THEN 'tech:' + a.name
+              WHEN a:Tool THEN 'tool:' + a.name
+              WHEN a:User THEN 'user:' + a.discordId
+            END AS source,
+            CASE
+              WHEN b:Link THEN b.url
+              WHEN b:Category THEN 'cat:' + b.name
+              WHEN b:Technology THEN 'tech:' + b.name
+              WHEN b:Tool THEN 'tool:' + b.name
+              WHEN b:User THEN 'user:' + b.discordId
+            END AS target,
+            type(r) AS type
+        `),
+        sessions[6]!.run(`
+          MATCH (l:Link) WITH count(l) AS links
+          MATCH (c:Category) WITH links, count(c) AS categories
+          MATCH (t:Technology) WITH links, categories, count(t) AS technologies
+          MATCH (tl:Tool) WITH links, categories, technologies, count(tl) AS tools
+          MATCH (u:User) WITH links, categories, technologies, tools, count(u) AS users
+          RETURN links, categories, technologies, tools, users
+        `),
+      ]);
+
+      const nodes = [
+        ...linksRes.records.map((r) => ({
+          id: r.get("id") as string,
+          title: r.get("title") as string,
+          nodeType: "link" as const,
+          domain: r.get("domain") as string,
+          forgeScore: toNum(r.get("forgeScore")),
+          contentType: r.get("contentType") as string,
+          quality: r.get("quality") as string,
+          integrationType: r.get("integrationType") as string,
+          difficulty: r.get("difficulty") as string,
+          savedAt: (r.get("savedAt") || "") as string,
+          connectionCount: toNum(r.get("connectionCount")),
+        })),
+        ...catsRes.records.map((r) => ({
+          id: `cat:${r.get("name") as string}`,
+          title: r.get("name") as string,
+          nodeType: "category" as const,
+          connectionCount: toNum(r.get("connectionCount")),
+        })),
+        ...techsRes.records.map((r) => ({
+          id: `tech:${r.get("name") as string}`,
+          title: r.get("name") as string,
+          nodeType: "technology" as const,
+          connectionCount: toNum(r.get("connectionCount")),
+        })),
+        ...toolsRes.records.map((r) => ({
+          id: `tool:${r.get("name") as string}`,
+          title: r.get("name") as string,
+          nodeType: "tool" as const,
+          connectionCount: toNum(r.get("connectionCount")),
+        })),
+        ...usersRes.records.map((r) => ({
+          id: `user:${r.get("discordId") as string}`,
+          title: r.get("displayName") as string,
+          nodeType: "user" as const,
+          avatarUrl: (r.get("avatarUrl") || "") as string,
+          interests: (r.get("interests") ?? []) as string[],
+          connectionCount: toNum(r.get("connectionCount")),
+        })),
+      ];
+
+      const edges = edgesRes.records
+        .filter((r) => r.get("source") != null && r.get("target") != null)
+        .map((r) => ({
+          source: r.get("source") as string,
+          target: r.get("target") as string,
+          type: r.get("type") as string,
+        }));
+
+      const metaRec = metaRes.records[0]!;
+      const meta = {
+        totalLinks: toNum(metaRec.get("links")),
+        totalCategories: toNum(metaRec.get("categories")),
+        totalTechnologies: toNum(metaRec.get("technologies")),
+        totalTools: toNum(metaRec.get("tools")),
+        totalUsers: toNum(metaRec.get("users")),
+      };
+
+      res.json({ nodes, edges, meta });
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch full graph data");
+      res.status(500).json({ error: "Failed to fetch full graph data" });
+    } finally {
+      await Promise.all(sessions.map((s) => s.close()));
+    }
+  });
+
+  // Node neighborhood API — 2-hop neighborhood including tags
+  app.get("/api/graph/node/:nodeId", async (req, res) => {
+    const session = neo4jDriver.session();
+    const nodeId = decodeURIComponent(req.params["nodeId"]!);
+    try {
+      // Parse node ID prefix to determine label and match property
+      let label: string, matchProp: string, matchVal: string;
+      if (nodeId.startsWith("cat:")) {
+        label = "Category"; matchProp = "name"; matchVal = nodeId.slice(4);
+      } else if (nodeId.startsWith("tech:")) {
+        label = "Technology"; matchProp = "name"; matchVal = nodeId.slice(5);
+      } else if (nodeId.startsWith("tool:")) {
+        label = "Tool"; matchProp = "name"; matchVal = nodeId.slice(5);
+      } else if (nodeId.startsWith("user:")) {
+        label = "User"; matchProp = "discordId"; matchVal = nodeId.slice(5);
+      } else {
+        label = "Link"; matchProp = "url"; matchVal = nodeId;
+      }
+
+      // Find center node
+      const centerRes = await session.run(
+        `MATCH (c:${label} {${matchProp}: $val}) RETURN c, labels(c)[0] AS label`,
+        { val: matchVal },
+      );
+      if (centerRes.records.length === 0) {
+        res.status(404).json({ error: "Node not found" });
+        return;
+      }
+
+      // Get 2-hop neighborhood nodes (including tags)
+      const neighborsRes = await session.run(`
+        MATCH (center:${label} {${matchProp}: $val})-[*1..2]-(n)
+        WITH DISTINCT n
+        RETURN labels(n)[0] AS label,
+               CASE WHEN n:Link THEN n.url
+                    WHEN n:Category THEN 'cat:' + n.name
+                    WHEN n:Technology THEN 'tech:' + n.name
+                    WHEN n:Tool THEN 'tool:' + n.name
+                    WHEN n:User THEN 'user:' + n.discordId
+                    WHEN n:Tag THEN 'tag:' + n.name
+               END AS id,
+               COALESCE(n.title, n.displayName, n.name) AS title,
+               n.domain AS domain,
+               COALESCE(n.forgeScore, 0) AS forgeScore,
+               COALESCE(n.contentType, '') AS contentType
+        LIMIT 500
+      `, { val: matchVal });
+
+      // Get all edges between center+neighbors
+      const edgesRes = await session.run(`
+        MATCH (center:${label} {${matchProp}: $val})
+        WITH center
+        OPTIONAL MATCH (center)-[*1..2]-(n)
+        WITH center, collect(DISTINCT n) AS neighbors
+        WITH [center] + neighbors AS allNodes
+        UNWIND allNodes AS a
+        MATCH (a)-[r]->(b) WHERE b IN allNodes
+        RETURN DISTINCT
+          CASE WHEN a:Link THEN a.url WHEN a:Category THEN 'cat:' + a.name
+               WHEN a:Technology THEN 'tech:' + a.name WHEN a:Tool THEN 'tool:' + a.name
+               WHEN a:User THEN 'user:' + a.discordId WHEN a:Tag THEN 'tag:' + a.name
+          END AS source,
+          CASE WHEN b:Link THEN b.url WHEN b:Category THEN 'cat:' + b.name
+               WHEN b:Technology THEN 'tech:' + b.name WHEN b:Tool THEN 'tool:' + b.name
+               WHEN b:User THEN 'user:' + b.discordId WHEN b:Tag THEN 'tag:' + b.name
+          END AS target,
+          type(r) AS type
+      `, { val: matchVal });
+
+      // Build center node
+      const cRec = centerRes.records[0]!;
+      const cNode = cRec.get("c");
+      const cLabel = cRec.get("label") as string;
+      const center = {
+        id: nodeId,
+        title: (cNode.properties.title || cNode.properties.displayName || cNode.properties.name) as string,
+        nodeType: cLabel.toLowerCase(),
+        domain: (cNode.properties.domain || "") as string,
+        forgeScore: toNum(cNode.properties.forgeScore || 0),
+        contentType: (cNode.properties.contentType || "") as string,
+        keyConcepts: cNode.properties.keyConcepts || [],
+      };
+
+      const nodes = neighborsRes.records
+        .filter((r) => r.get("id") != null)
+        .map((r) => {
+          const lbl = (r.get("label") as string).toLowerCase();
+          return {
+            id: r.get("id") as string,
+            title: r.get("title") as string,
+            nodeType: lbl === "tag" ? "tag" : lbl,
+            domain: (r.get("domain") || "") as string,
+            forgeScore: toNum(r.get("forgeScore")),
+            contentType: (r.get("contentType") || "") as string,
+          };
+        });
+
+      const edges = edgesRes.records
+        .filter((r) => r.get("source") != null && r.get("target") != null)
+        .map((r) => ({
+          source: r.get("source") as string,
+          target: r.get("target") as string,
+          type: r.get("type") as string,
+        }));
+
+      res.json({ center, nodes, edges });
+    } catch (err) {
+      logger.error({ err, nodeId }, "Failed to fetch node neighborhood");
+      res.status(500).json({ error: "Failed to fetch node neighborhood" });
+    } finally {
+      await session.close();
+    }
+  });
+
   // Paginated links API — optional ?user=discordId filter
   app.get("/api/links", async (req, res) => {
     const session = neo4jDriver.session();
@@ -425,12 +721,16 @@ export function createDashboardServer(
       }
 
       cypher += `
+        WITH l
+        OPTIONAL MATCH (l)-[:CATEGORIZED_IN]->(cat:Category)
+        WITH l, collect(cat.name) AS categories
         RETURN l.url AS url, l.title AS title, l.domain AS domain,
                COALESCE(l.forgeScore, 0) AS forgeScore,
                COALESCE(l.contentType, 'reference') AS contentType,
                l.purpose AS purpose, l.quality AS quality, l.savedAt AS savedAt,
                l.keyConcepts AS keyConcepts, l.authors AS authors,
-               l.keyTakeaways AS keyTakeaways, l.difficulty AS difficulty
+               l.keyTakeaways AS keyTakeaways, l.difficulty AS difficulty,
+               l.integrationType AS integrationType, categories
         ORDER BY forgeScore DESC, l.savedAt DESC
         SKIP $offset LIMIT $limit
       `;
@@ -450,12 +750,111 @@ export function createDashboardServer(
         authors: r.get("authors") ?? [],
         keyTakeaways: r.get("keyTakeaways") ?? [],
         difficulty: r.get("difficulty") ?? null,
+        integrationType: r.get("integrationType") ?? null,
+        categories: r.get("categories") ?? [],
       }));
 
       res.json({ links, count: links.length, offset: offset.toNumber(), limit: limit.toNumber() });
     } catch (err) {
       logger.error({ err }, "Failed to fetch links");
       res.status(500).json({ error: "Failed to fetch links" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Single link detail API
+  app.get("/api/link/:encodedUrl", async (req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      const url = decodeURIComponent(req.params["encodedUrl"]!);
+
+      const result = await session.run(`
+        MATCH (l:Link {url: $url})
+        OPTIONAL MATCH (l)-[:CATEGORIZED_IN]->(c:Category)
+        OPTIONAL MATCH (l)-[:TAGGED_WITH]->(t:Tag)
+        OPTIONAL MATCH (l)-[:MENTIONS_TECH]->(tech:Technology)
+        OPTIONAL MATCH (l)-[:MENTIONS_TOOL]->(tool:Tool)
+        OPTIONAL MATCH (l)-[:SHARED_BY]->(u:User)
+        RETURN l, collect(DISTINCT c.name) AS categories,
+               collect(DISTINCT t.name) AS tags,
+               collect(DISTINCT tech.name) AS technologies,
+               collect(DISTINCT { name: tool.name, url: tool.url }) AS tools,
+               collect(DISTINCT { displayName: u.displayName, avatarUrl: u.avatarUrl }) AS sharedBy
+      `, { url });
+
+      if (result.records.length === 0) {
+        res.status(404).json({ error: "Link not found" });
+        return;
+      }
+
+      const rec = result.records[0]!;
+      const l = rec.get("l").properties;
+
+      // Get related links
+      const relResult = await session.run(`
+        MATCH (l:Link {url: $url})-[r:RELATED_TO]-(other:Link)
+        RETURN other.url AS url, other.title AS title,
+               COALESCE(other.forgeScore, 0) AS forgeScore, r.score AS score
+        ORDER BY r.score DESC LIMIT 10
+      `, { url });
+
+      // Get links to / linked from
+      const linksToResult = await session.run(`
+        MATCH (l:Link {url: $url})-[:LINKS_TO]->(other:Link)
+        RETURN other.url AS url, other.title AS title
+        LIMIT 20
+      `, { url });
+
+      const linkedFromResult = await session.run(`
+        MATCH (other:Link)-[:LINKS_TO]->(l:Link {url: $url})
+        RETURN other.url AS url, other.title AS title
+        LIMIT 20
+      `, { url });
+
+      res.json({
+        link: {
+          url: l.url,
+          title: l.title,
+          description: l.description ?? "",
+          domain: l.domain,
+          savedAt: l.savedAt,
+          forgeScore: toNum(l.forgeScore ?? 0),
+          contentType: l.contentType ?? "reference",
+          purpose: l.purpose ?? "",
+          integrationType: l.integrationType ?? "",
+          quality: l.quality ?? "",
+          keyConcepts: l.keyConcepts ?? [],
+          authors: l.authors ?? [],
+          keyTakeaways: l.keyTakeaways ?? [],
+          difficulty: l.difficulty ?? "",
+          content: (l.content ?? "").slice(0, 2000),
+        },
+        categories: rec.get("categories").filter((c: string | null) => c != null),
+        tags: rec.get("tags").filter((t: string | null) => t != null),
+        technologies: rec.get("technologies").filter((t: string | null) => t != null),
+        tools: (rec.get("tools") as Array<{ name: string | null; url: string | null }>)
+          .filter((t) => t.name != null),
+        sharedBy: (rec.get("sharedBy") as Array<{ displayName: string | null; avatarUrl: string | null }>)
+          .filter((u) => u.displayName != null),
+        relatedLinks: relResult.records.map((r) => ({
+          url: r.get("url") as string,
+          title: r.get("title") as string,
+          forgeScore: toNum(r.get("forgeScore")),
+          score: toNum(r.get("score")),
+        })),
+        linksTo: linksToResult.records.map((r) => ({
+          url: r.get("url") as string,
+          title: r.get("title") as string,
+        })),
+        linkedFrom: linkedFromResult.records.map((r) => ({
+          url: r.get("url") as string,
+          title: r.get("title") as string,
+        })),
+      });
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch link detail");
+      res.status(500).json({ error: "Failed to fetch link detail" });
     } finally {
       await session.close();
     }
@@ -477,7 +876,9 @@ export function createDashboardServer(
       const userRes = await session.run(`
         MATCH (u:User)
         OPTIONAL MATCH (u)<-[:SHARED_BY]-(l:Link)
-        RETURN u.discordId AS discordId, u.displayName AS displayName, count(l) AS linkCount
+        RETURN u.discordId AS discordId, u.displayName AS displayName,
+               u.avatarUrl AS avatarUrl, u.interests AS interests,
+               count(l) AS linkCount
         ORDER BY linkCount DESC
       `);
 
@@ -516,6 +917,8 @@ export function createDashboardServer(
       const users = userRes.records.map((r) => ({
         discordId: r.get("discordId") as string,
         displayName: r.get("displayName") as string,
+        avatarUrl: (r.get("avatarUrl") || "") as string,
+        interests: (r.get("interests") ?? []) as string[],
         linkCount: toNum(r.get("linkCount")),
       }));
 
@@ -702,6 +1105,198 @@ export function createDashboardServer(
     } catch (err) {
       logger.error({ err }, "Failed to generate category chart");
       res.status(500).json({ error: "Chart generation failed" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Quality distribution
+  app.get("/api/stats/quality", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      const result = await session.run(`
+        MATCH (l:Link)
+        RETURN COALESCE(l.quality, 'unknown') AS quality, count(l) AS count
+        ORDER BY count DESC
+      `);
+      res.json(result.records.map((r) => ({
+        quality: r.get("quality") as string,
+        count: toNum(r.get("count")),
+      })));
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch quality stats");
+      res.status(500).json({ error: "Failed to fetch quality stats" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Integration type distribution
+  app.get("/api/stats/integration", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      const result = await session.run(`
+        MATCH (l:Link)
+        RETURN COALESCE(l.integrationType, 'unknown') AS integrationType, count(l) AS count
+        ORDER BY count DESC
+      `);
+      res.json(result.records.map((r) => ({
+        integrationType: r.get("integrationType") as string,
+        count: toNum(r.get("count")),
+      })));
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch integration stats");
+      res.status(500).json({ error: "Failed to fetch integration stats" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Top domains
+  app.get("/api/stats/domains", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      const result = await session.run(`
+        MATCH (l:Link)
+        WHERE l.domain IS NOT NULL AND l.domain <> ''
+        RETURN l.domain AS domain, count(l) AS count
+        ORDER BY count DESC LIMIT 15
+      `);
+      res.json(result.records.map((r) => ({
+        domain: r.get("domain") as string,
+        count: toNum(r.get("count")),
+      })));
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch domain stats");
+      res.status(500).json({ error: "Failed to fetch domain stats" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Difficulty distribution
+  app.get("/api/stats/difficulty", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      const result = await session.run(`
+        MATCH (l:Link)
+        WHERE l.difficulty IS NOT NULL AND l.difficulty <> ''
+        RETURN l.difficulty AS difficulty, count(l) AS count
+        ORDER BY count DESC
+      `);
+      res.json(result.records.map((r) => ({
+        difficulty: r.get("difficulty") as string,
+        count: toNum(r.get("count")),
+      })));
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch difficulty stats");
+      res.status(500).json({ error: "Failed to fetch difficulty stats" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Timeline (links per week)
+  app.get("/api/stats/timeline", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      const result = await session.run(`
+        MATCH (l:Link)
+        WHERE l.savedAt IS NOT NULL
+        WITH l, date(datetime(l.savedAt)) AS d
+        WITH d.year AS yr, d.week AS wk, count(l) AS count
+        ORDER BY yr, wk
+        RETURN yr + '-W' + CASE WHEN wk < 10 THEN '0' + wk ELSE '' + wk END AS week, count
+      `);
+      res.json(result.records.map((r) => ({
+        week: r.get("week") as string,
+        count: toNum(r.get("count")),
+      })));
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch timeline stats");
+      res.status(500).json({ error: "Failed to fetch timeline stats" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Technology landscape
+  app.get("/api/stats/tech-landscape", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      const result = await session.run(`
+        MATCH (l:Link)-[:MENTIONS_TECH]->(t:Technology)
+        WITH t, count(l) AS linkCount, avg(COALESCE(l.forgeScore, 0)) AS avgScore
+        ORDER BY linkCount DESC LIMIT 30
+        OPTIONAL MATCH (tool:Tool)-[:USED_WITH]->(t)
+        RETURN t.name AS name, linkCount, avgScore,
+               collect(DISTINCT { name: tool.name, url: tool.url }) AS tools
+      `);
+      const techs = result.records.map((r) => ({
+        name: r.get("name") as string,
+        linkCount: toNum(r.get("linkCount")),
+        avgScore: Math.round(toNum(r.get("avgScore")) * 100) / 100,
+        tools: (r.get("tools") as Array<{ name: string | null; url: string | null }>)
+          .filter((t) => t.name != null),
+      }));
+      res.json(techs);
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch tech landscape");
+      res.status(500).json({ error: "Failed to fetch tech landscape" });
+    } finally {
+      await session.close();
+    }
+  });
+
+  // Category tree (SUBCATEGORY_OF hierarchy)
+  app.get("/api/stats/category-tree", async (_req, res) => {
+    const session = neo4jDriver.session();
+    try {
+      // Get all subcategory relationships
+      const relRes = await session.run(`
+        MATCH (child:Category)-[:SUBCATEGORY_OF]->(parent:Category)
+        RETURN parent.name AS parent, child.name AS child
+      `);
+      // Get all categories with link counts
+      const catRes = await session.run(`
+        MATCH (c:Category)
+        OPTIONAL MATCH (l:Link)-[:CATEGORIZED_IN]->(c)
+        RETURN c.name AS name, count(l) AS linkCount
+        ORDER BY linkCount DESC
+      `);
+
+      const linkCounts: Record<string, number> = {};
+      for (const r of catRes.records) {
+        linkCounts[r.get("name") as string] = toNum(r.get("linkCount"));
+      }
+
+      const children: Record<string, string[]> = {};
+      const hasParent = new Set<string>();
+      for (const r of relRes.records) {
+        const parent = r.get("parent") as string;
+        const child = r.get("child") as string;
+        if (!children[parent]) children[parent] = [];
+        children[parent].push(child);
+        hasParent.add(child);
+      }
+
+      // Build tree: roots are categories with children that are not themselves children
+      const roots = Object.keys(children)
+        .filter((p) => !hasParent.has(p))
+        .sort((a, b) => (linkCounts[b] || 0) - (linkCounts[a] || 0));
+
+      const tree = roots.map((root) => ({
+        name: root,
+        linkCount: linkCounts[root] || 0,
+        children: (children[root] || [])
+          .map((ch) => ({ name: ch, linkCount: linkCounts[ch] || 0 }))
+          .sort((a, b) => b.linkCount - a.linkCount),
+      }));
+
+      res.json(tree);
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch category tree");
+      res.status(500).json({ error: "Failed to fetch category tree" });
     } finally {
       await session.close();
     }

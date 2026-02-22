@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link Detail — Link Forge</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1b1e; color: #dbdee1; min-height: 100vh;
+    }
+    a { color: #7983f5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .topbar {
+      background: #2b2d31; border-bottom: 1px solid #3f4147;
+      padding: 12px 32px; display: flex; align-items: center; gap: 12px;
+    }
+    .topbar a { color: #8e9297; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .topbar a:hover { color: #dbdee1; text-decoration: none; }
+    .topbar svg { width: 16px; height: 16px; }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 24px 32px 48px; }
+
+    .hero { margin-bottom: 24px; }
+    .hero-title { font-size: 22px; font-weight: 700; color: #fff; line-height: 1.3; margin-bottom: 8px; }
+    .hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .hero-domain { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8e9297; }
+    .hero-domain img { width: 16px; height: 16px; border-radius: 2px; }
+
+    .score-badge {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px;
+      border-radius: 6px; font-weight: 700; font-size: 16px;
+    }
+    .badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 4px;
+      background: #383a40; color: #8e9297; font-weight: 500;
+    }
+    .badge-quality-high { background: #57f28733; color: #57f287; }
+    .badge-quality-medium { background: #fee75c33; color: #fee75c; }
+    .badge-quality-low { background: #ed424533; color: #ed4245; }
+
+    .purpose { font-size: 14px; color: #b5bac1; font-style: italic; margin-bottom: 16px; line-height: 1.5; }
+
+    .section { margin-bottom: 20px; }
+    .section-label {
+      font-size: 11px; color: #6d7078; text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px;
+    }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      font-size: 12px; padding: 3px 10px; border-radius: 6px;
+      background: #383a40; color: #8e9297;
+    }
+    .pill-cat { background: #fee75c22; color: #fee75c; border: 1px solid #fee75c33; }
+    .pill-tech { background: #3498db22; color: #3498db; border: 1px solid #3498db33; }
+    .pill-tool { background: #57f28722; color: #57f287; border: 1px solid #57f28733; }
+    .pill-tag { background: #b07cc622; color: #b07cc6; border: 1px solid #b07cc633; }
+
+    .takeaways { list-style: none; padding: 0; }
+    .takeaways li {
+      padding: 8px 0; border-bottom: 1px solid #33363b; font-size: 13px;
+      color: #b5bac1; line-height: 1.5; display: flex; gap: 8px;
+    }
+    .takeaways li:last-child { border-bottom: none; }
+    .takeaways li::before { content: ''; flex-shrink: 0; width: 6px; height: 6px; background: #5865f2; border-radius: 50%; margin-top: 7px; }
+
+    .content-preview {
+      background: #2b2d31; border: 1px solid #33363b; border-radius: 8px;
+      padding: 16px; font-size: 13px; color: #8e9297; line-height: 1.6;
+      max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+      scrollbar-width: thin; scrollbar-color: #383a40 transparent;
+    }
+
+    .related-card {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      background: #2b2d31; border: 1px solid #33363b; border-radius: 8px;
+      margin-bottom: 6px; transition: border-color 0.15s;
+    }
+    .related-card:hover { border-color: #4f545c; }
+    .related-score { font-size: 14px; font-weight: 700; min-width: 40px; }
+    .related-title { flex: 1; font-size: 13px; color: #dbdee1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .related-sim { font-size: 11px; color: #6d7078; flex-shrink: 0; }
+
+    .link-list-simple { list-style: none; padding: 0; }
+    .link-list-simple li { padding: 4px 0; font-size: 13px; }
+    .link-list-simple li a { color: #7983f5; }
+
+    .shared-users { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .shared-user { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #dbdee1; }
+    .shared-user img { width: 24px; height: 24px; border-radius: 50%; }
+    .shared-user .avatar-letter {
+      width: 24px; height: 24px; border-radius: 50%; background: #5865f2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+
+    .actions { display: flex; gap: 10px; margin-top: 8px; }
+    .btn {
+      padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 500; transition: all 0.15s;
+    }
+    .btn-primary { background: #5865f2; color: #fff; }
+    .btn-primary:hover { background: #4752c4; }
+    .btn-secondary { background: #383a40; color: #dbdee1; }
+    .btn-secondary:hover { background: #404349; }
+
+    .collapsible-toggle {
+      background: none; border: none; color: #7983f5; font-size: 12px;
+      cursor: pointer; padding: 4px 0; margin-bottom: 8px;
+    }
+    .collapsible-toggle:hover { text-decoration: underline; }
+
+    .loading { text-align: center; padding: 40px; color: #6d7078; font-size: 14px; }
+    .error-state { text-align: center; padding: 40px; color: #ed4245; font-size: 14px; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="javascript:history.back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Dashboard
+    </a>
+  </div>
+  <div class="container" id="content">
+    <div class="loading">Loading link detail...</div>
+  </div>
+
+<script>
+const SCORE_COLORS = {
+  artifact: '#57f287', guide: '#5865f2', analysis: '#fee75c',
+  pointer: '#f0b232', commentary: '#ed4245', junk: '#8e9297',
+};
+
+function scoreColor(s) {
+  if (s >= 0.85) return SCORE_COLORS.artifact;
+  if (s >= 0.65) return SCORE_COLORS.guide;
+  if (s >= 0.45) return SCORE_COLORS.analysis;
+  if (s >= 0.25) return SCORE_COLORS.pointer;
+  if (s >= 0.10) return SCORE_COLORS.commentary;
+  return SCORE_COLORS.junk;
+}
+
+function scoreTier(s) {
+  if (s >= 0.85) return 'Artifact';
+  if (s >= 0.65) return 'Guide';
+  if (s >= 0.45) return 'Analysis';
+  if (s >= 0.25) return 'Pointer';
+  if (s >= 0.10) return 'Commentary';
+  return 'Junk';
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function relativeDate(d) {
+  if (!d) return '';
+  const diff = Date.now() - new Date(d).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function apiFetch(url, opts) {
+  const headers = { ...(opts?.headers || {}) };
+  headers['ngrok-skip-browser-warning'] = 'true';
+  return fetch(url, { ...opts, headers, credentials: 'same-origin' });
+}
+
+async function loadDetail() {
+  const container = document.getElementById('content');
+
+  // Extract URL from path: /link/:encodedUrl or /d/:guid/link/:encodedUrl
+  const pathParts = window.location.pathname.split('/link/');
+  if (pathParts.length < 2) {
+    container.innerHTML = '<div class="error-state">Invalid URL</div>';
+    return;
+  }
+  const encodedUrl = pathParts[1];
+
+  try {
+    const res = await apiFetch('/api/link/' + encodedUrl);
+    if (!res.ok) {
+      container.innerHTML = '<div class="error-state">Link not found</div>';
+      return;
+    }
+    const data = await res.json();
+    const l = data.link;
+    const sc = scoreColor(l.forgeScore);
+    const isFile = l.url.startsWith('file:///');
+
+    document.title = (l.title || l.url).slice(0, 60) + ' — Link Forge';
+
+    let html = '<div class="hero">';
+
+    // Title
+    html += `<h1 class="hero-title">${escapeHtml(l.title || l.url)}</h1>`;
+
+    // Meta row
+    html += '<div class="hero-meta">';
+    html += `<span class="score-badge" style="background:${sc}22;color:${sc}">${l.forgeScore.toFixed(2)} <span style="font-size:11px;font-weight:400">${scoreTier(l.forgeScore)}</span></span>`;
+    html += `<span class="badge">${escapeHtml(l.contentType)}</span>`;
+    if (l.quality) html += `<span class="badge badge-quality-${l.quality}">${l.quality} quality</span>`;
+    if (l.difficulty) html += `<span class="badge">${escapeHtml(l.difficulty)}</span>`;
+    if (l.integrationType) html += `<span class="badge">${escapeHtml(l.integrationType)}</span>`;
+    html += '</div>';
+
+    // Domain + date
+    html += '<div class="hero-meta">';
+    if (!isFile) {
+      html += `<span class="hero-domain"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(l.domain)}&sz=32" alt="" loading="lazy">${escapeHtml(l.domain)}</span>`;
+    } else {
+      html += '<span class="hero-domain">Local file</span>';
+    }
+    html += `<span style="font-size:12px;color:#6d7078">Saved ${relativeDate(l.savedAt)}</span>`;
+
+    // Shared by
+    if (data.sharedBy.length > 0) {
+      html += '<span style="color:#4f545c">·</span><div class="shared-users">';
+      for (const u of data.sharedBy) {
+        const av = u.avatarUrl
+          ? `<img src="${escapeHtml(u.avatarUrl)}" alt="">`
+          : `<span class="avatar-letter">${escapeHtml((u.displayName || '?').charAt(0).toUpperCase())}</span>`;
+        html += `<span class="shared-user">${av} ${escapeHtml(u.displayName)}</span>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // Actions
+    html += '<div class="actions">';
+    if (!isFile) html += `<a class="btn btn-primary" href="${escapeHtml(l.url)}" target="_blank">Open Link</a>`;
+    html += `<button class="btn btn-secondary" onclick="history.back()">Back</button>`;
+    html += '</div>';
+
+    html += '</div>'; // end hero
+
+    // Purpose
+    if (l.purpose) {
+      html += `<div class="section"><div class="section-label">Purpose</div><div class="purpose">${escapeHtml(l.purpose)}</div></div>`;
+    }
+
+    // Authors
+    if (l.authors.length > 0) {
+      html += `<div class="section"><div class="section-label">Authors</div><div style="font-size:14px;color:#dbdee1">${escapeHtml(l.authors.join(', '))}</div></div>`;
+    }
+
+    // Key Takeaways
+    if (l.keyTakeaways.length > 0) {
+      html += `<div class="section"><div class="section-label">Key Takeaways</div><ul class="takeaways">`;
+      for (const t of l.keyTakeaways) {
+        html += `<li>${escapeHtml(t)}</li>`;
+      }
+      html += '</ul></div>';
+    }
+
+    // Key Concepts
+    if (l.keyConcepts.length > 0) {
+      html += `<div class="section"><div class="section-label">Key Concepts</div><div class="pill-row">`;
+      for (const c of l.keyConcepts) {
+        html += `<span class="pill">${escapeHtml(c)}</span>`;
+      }
+      html += '</div></div>';
+    }
+
+    // Two-column: Categories + Technologies & Tools
+    html += '<div class="two-col">';
+
+    // Categories
+    if (data.categories.length > 0) {
+      html += `<div class="section"><div class="section-label">Categories</div><div class="pill-row">`;
+      for (const c of data.categories) {
+        html += `<span class="pill pill-cat">${escapeHtml(c)}</span>`;
+      }
+      html += '</div></div>';
+    }
+
+    // Technologies
+    if (data.technologies.length > 0) {
+      html += `<div class="section"><div class="section-label">Technologies</div><div class="pill-row">`;
+      for (const t of data.technologies) {
+        html += `<span class="pill pill-tech">${escapeHtml(t)}</span>`;
+      }
+      html += '</div></div>';
+    }
+
+    html += '</div>'; // end two-col
+
+    // Tools
+    if (data.tools.length > 0) {
+      html += `<div class="section"><div class="section-label">Tools</div><div class="pill-row">`;
+      for (const t of data.tools) {
+        if (t.url) {
+          html += `<a class="pill pill-tool" href="${escapeHtml(t.url)}" target="_blank">${escapeHtml(t.name)}</a>`;
+        } else {
+          html += `<span class="pill pill-tool">${escapeHtml(t.name)}</span>`;
+        }
+      }
+      html += '</div></div>';
+    }
+
+    // Tags
+    if (data.tags.length > 0) {
+      html += `<div class="section"><div class="section-label">Tags (${data.tags.length})</div><div class="pill-row">`;
+      const showTags = data.tags.slice(0, 20);
+      for (const t of showTags) {
+        html += `<span class="pill pill-tag">${escapeHtml(t)}</span>`;
+      }
+      if (data.tags.length > 20) html += `<span class="pill" style="color:#6d7078">+${data.tags.length - 20} more</span>`;
+      html += '</div></div>';
+    }
+
+    // Content Preview
+    if (l.content) {
+      html += `<div class="section">
+        <button class="collapsible-toggle" id="content-toggle" onclick="document.getElementById('content-body').style.display = document.getElementById('content-body').style.display === 'none' ? 'block' : 'none'; this.textContent = document.getElementById('content-body').style.display === 'none' ? 'Show content preview' : 'Hide content preview'">Show content preview</button>
+        <div id="content-body" style="display:none"><div class="content-preview">${escapeHtml(l.content)}</div></div>
+      </div>`;
+    }
+
+    // Related Links
+    if (data.relatedLinks.length > 0) {
+      html += `<div class="section"><div class="section-label">Related Links</div>`;
+      for (const r of data.relatedLinks) {
+        const rsc = scoreColor(r.forgeScore);
+        const rUrl = '/link/' + encodeURIComponent(r.url);
+        html += `<a class="related-card" href="${rUrl}">
+          <span class="related-score" style="color:${rsc}">${r.forgeScore.toFixed(2)}</span>
+          <span class="related-title">${escapeHtml(r.title || r.url)}</span>
+          <span class="related-sim">${Math.round(r.score * 100)}% similar</span>
+        </a>`;
+      }
+      html += '</div>';
+    }
+
+    // Links To / Linked From
+    if (data.linksTo.length > 0 || data.linkedFrom.length > 0) {
+      html += '<div class="two-col">';
+      if (data.linksTo.length > 0) {
+        html += `<div class="section"><div class="section-label">Links To (${data.linksTo.length})</div><ul class="link-list-simple">`;
+        for (const r of data.linksTo) {
+          html += `<li><a href="/link/${encodeURIComponent(r.url)}">${escapeHtml(r.title || r.url)}</a></li>`;
+        }
+        html += '</ul></div>';
+      }
+      if (data.linkedFrom.length > 0) {
+        html += `<div class="section"><div class="section-label">Linked From (${data.linkedFrom.length})</div><ul class="link-list-simple">`;
+        for (const r of data.linkedFrom) {
+          html += `<li><a href="/link/${encodeURIComponent(r.url)}">${escapeHtml(r.title || r.url)}</a></li>`;
+        }
+        html += '</ul></div>';
+      }
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+
+  } catch (err) {
+    console.error('Failed to load link detail:', err);
+    container.innerHTML = '<div class="error-state">Failed to load link detail</div>';
+  }
+}
+
+// Fix back link for GUID paths
+(function() {
+  const backLink = document.querySelector('.topbar a');
+  const match = window.location.pathname.match(/^\/d\/([^/]+)\//);
+  if (match) {
+    backLink.href = '/d/' + match[1];
+  } else {
+    backLink.href = '/dashboard';
+  }
+})();
+
+loadDetail();
+</script>
+</body>
+</html>
