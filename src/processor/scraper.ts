@@ -249,6 +249,14 @@ export async function scrapeUrl(
     });
 
     if (!response.ok) {
+      // DOI/academic URLs: try Unpaywall + Semantic Scholar before giving up
+      if (response.status === 403 || response.status === 401) {
+        const doi = extractDoi(url);
+        if (doi) {
+          const academic = await scrapeAcademicDoi(doi, url, timeoutMs, logger);
+          if (academic) return academic;
+        }
+      }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
@@ -301,4 +309,125 @@ function extractBodyText(dom: JSDOM): string {
     el.remove();
   }
   return (body.textContent || "").replace(/\s+/g, " ").trim().slice(0, 10000);
+}
+
+// --- Academic DOI fallback ---
+
+function extractDoi(url: string): string | null {
+  // Direct doi.org links
+  const doiOrg = url.match(/^https?:\/\/(dx\.)?doi\.org\/(.+)$/);
+  if (doiOrg) return decodeURIComponent(doiOrg[2]!);
+
+  // Publisher URLs with /doi/ in path (Wiley, ACM, etc.)
+  const pubDoi = url.match(/\/doi\/(?:abs|full|pdf|pdfdirect)?\/?(10\..+)$/);
+  if (pubDoi) return decodeURIComponent(pubDoi[1]!);
+
+  // ScienceDirect pii → not a DOI but we can try CrossRef
+  // For now, skip non-DOI academic URLs
+  return null;
+}
+
+interface S2Paper {
+  title?: string;
+  abstract?: string;
+  year?: number;
+  citationCount?: number;
+  authors?: Array<{ name: string }>;
+  fieldsOfStudy?: string[];
+  tldr?: { text: string };
+  openAccessPdf?: { url: string };
+  externalIds?: { DOI?: string; ArXiv?: string };
+}
+
+async function scrapeAcademicDoi(
+  doi: string,
+  originalUrl: string,
+  timeoutMs: number,
+  logger: pino.Logger,
+): Promise<ScrapedContent | null> {
+  logger.debug({ doi }, "Trying academic DOI fallback");
+
+  // Strategy 1: Unpaywall — check for OA full-text PDF
+  try {
+    const upRes = await fetch(
+      `https://api.unpaywall.org/v2/${doi}?email=wobblyagent@gmail.com`,
+      { signal: AbortSignal.timeout(10000) },
+    );
+    if (upRes.ok) {
+      const data = (await upRes.json()) as Record<string, unknown>;
+      const oa = data.best_oa_location as Record<string, unknown> | null;
+      const pdfUrl = (oa?.url_for_pdf || oa?.url) as string | undefined;
+
+      if (data.is_oa && pdfUrl) {
+        logger.info({ doi, pdfUrl }, "Unpaywall found OA PDF");
+        // Try to fetch the PDF and extract text
+        try {
+          const { extractTextFromBuffer } = await import("../extractor/index.js");
+          const pdfRes = await fetch(pdfUrl, {
+            signal: AbortSignal.timeout(timeoutMs),
+            headers: { Accept: "application/pdf,*/*" },
+            redirect: "follow",
+          });
+          if (pdfRes.ok) {
+            const contentType = pdfRes.headers.get("content-type") || "";
+            if (contentType.includes("pdf")) {
+              const buffer = Buffer.from(await pdfRes.arrayBuffer());
+              const extracted = await extractTextFromBuffer(buffer, "paper.pdf", logger);
+              if (extracted.content.length > 100) {
+                return {
+                  title: String(data.title || extracted.title || doi),
+                  description: extracted.description || String(data.title || ""),
+                  content: extracted.content,
+                  domain: new URL(originalUrl).hostname,
+                };
+              }
+            }
+          }
+        } catch (err) {
+          logger.debug({ doi, err: (err as Error).message }, "OA PDF download/extract failed");
+        }
+      }
+    }
+  } catch (err) {
+    logger.debug({ doi, err: (err as Error).message }, "Unpaywall lookup failed");
+  }
+
+  // Strategy 2: Semantic Scholar — title, abstract, authors, TLDR
+  try {
+    const s2Res = await fetch(
+      `https://api.semanticscholar.org/graph/v1/paper/DOI:${doi}?fields=title,abstract,year,citationCount,authors,fieldsOfStudy,tldr,openAccessPdf`,
+      { signal: AbortSignal.timeout(10000) },
+    );
+    if (s2Res.ok) {
+      const paper = (await s2Res.json()) as S2Paper;
+      if (paper.title && paper.abstract) {
+        const authors = paper.authors?.map((a) => a.name).join(", ") || "Unknown";
+        const fields = paper.fieldsOfStudy?.join(", ") || "";
+        const tldr = paper.tldr?.text || "";
+
+        const contentParts = [
+          `Title: ${paper.title}`,
+          `Authors: ${authors}`,
+          `Year: ${paper.year || "Unknown"}`,
+          `Citations: ${paper.citationCount || 0}`,
+          fields ? `Fields: ${fields}` : "",
+          `\nAbstract:\n${paper.abstract}`,
+          tldr ? `\nTL;DR: ${tldr}` : "",
+        ].filter(Boolean);
+
+        logger.info({ doi, title: paper.title }, "Semantic Scholar metadata extracted");
+        return {
+          title: paper.title,
+          description: paper.abstract.slice(0, 300),
+          content: contentParts.join("\n"),
+          domain: new URL(originalUrl).hostname,
+        };
+      }
+    }
+  } catch (err) {
+    logger.debug({ doi, err: (err as Error).message }, "Semantic Scholar lookup failed");
+  }
+
+  logger.debug({ doi }, "All academic fallbacks failed");
+  return null;
 }

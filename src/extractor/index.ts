@@ -119,6 +119,34 @@ export async function extractTextFromFile(
   }
 }
 
+/** Extract text from an in-memory buffer (for downloaded PDFs/docs).
+ *  Writes to a temp file under data/uploads/ then delegates to parseOffice. */
+export async function extractTextFromBuffer(
+  buffer: Buffer,
+  filename: string,
+  logger: pino.Logger,
+): Promise<ScrapedContent> {
+  const { writeFile, unlink, mkdir } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+
+  const uploadDir = "./data/uploads";
+  await mkdir(uploadDir, { recursive: true });
+  const hash = fileHash(buffer);
+  const ext = extname(filename).toLowerCase();
+  const tempPath = join(uploadDir, `unpaywall-${hash}${ext}`);
+
+  try {
+    await writeFile(tempPath, buffer);
+    return await extractTextFromFile(tempPath, logger);
+  } finally {
+    try {
+      await unlink(tempPath);
+    } catch {
+      // cleanup best-effort
+    }
+  }
+}
+
 /** Derive a human-readable title from a filename (strip extension, replace separators). */
 function titleFromFilename(filename: string): string {
   const withoutExt = filename.replace(/\.[^.]+$/, "");
