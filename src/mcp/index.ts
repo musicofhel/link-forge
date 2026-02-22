@@ -9,6 +9,8 @@ import {
   handleForgeFindTools,
   handleForgeRelated,
   handleForgeRecent,
+  handleForgeConcepts,
+  handleForgeAuthors,
 } from "./tools/index.js";
 
 async function main() {
@@ -113,6 +115,40 @@ async function main() {
     async ({ limit }) => {
       try {
         const text = await handleForgeRecent({ limit }, neo4jDriver);
+        return { content: [{ type: "text", text }] };
+      } catch (err) {
+        return { content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };
+      }
+    },
+  );
+
+  server.tool(
+    "forge_concepts",
+    "Browse the concept network. Without a concept name, lists top concepts by mention count. With a concept name, shows related links and connected concepts.",
+    {
+      concept: z.string().optional().describe("Concept to explore (optional — omit to list top concepts)"),
+      limit: z.number().optional().describe("Maximum results (default: 15)"),
+    },
+    async ({ concept, limit }) => {
+      try {
+        const text = await handleForgeConcepts({ concept, limit }, neo4jDriver);
+        return { content: [{ type: "text", text }] };
+      } catch (err) {
+        return { content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };
+      }
+    },
+  );
+
+  server.tool(
+    "forge_authors",
+    "Find papers by author or list top authors. Without an author name, lists top authors. With an author name, shows their publications and co-authors.",
+    {
+      author: z.string().optional().describe("Author name to search (optional — omit to list top authors)"),
+      limit: z.number().optional().describe("Maximum results (default: 15)"),
+    },
+    async ({ author, limit }) => {
+      try {
+        const text = await handleForgeAuthors({ author, limit }, neo4jDriver);
         return { content: [{ type: "text", text }] };
       } catch (err) {
         return { content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };

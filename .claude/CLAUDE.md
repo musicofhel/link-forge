@@ -55,13 +55,19 @@ npm run typecheck    # tsc --noEmit
 
 - `npx tsx scripts/set-interests.ts "<name>" "<interests>"` — Set user interest profile
 - `npx tsx scripts/reprocess-documents.ts` — Re-categorize all documents with current prompt
+- `npx tsx scripts/migrate-concepts-authors.ts` — Backfill Concept/Author nodes from existing Link data
+- `npx tsx scripts/generate-chunks.ts` — Backfill chunk embeddings for all existing links
 
 ## Neo4j Graph Schema
 
-- **Nodes**: Link, Category, Tag, Technology, Tool, User
-- **Relationships**: CATEGORIZED_IN, TAGGED_WITH, MENTIONS_TOOL, MENTIONS_TECH, RELATED_TO, SUBCATEGORY_OF, USED_WITH, SHARED_BY, LINKS_TO
-- **Vector index**: 384-dim cosine on Link.embedding
+- **Nodes**: Link, Category, Tag, Technology, Tool, User, Concept, Author, Chunk
+- **Relationships**: CATEGORIZED_IN, TAGGED_WITH, MENTIONS_TOOL, MENTIONS_TECH, RELATED_TO, SUBCATEGORY_OF, USED_WITH, SHARED_BY, LINKS_TO, RELATES_TO_CONCEPT, AUTHORED_BY, HAS_CHUNK
+- **Vector indexes**: `link_embedding_idx` (384-dim cosine on Link.embedding), `chunk_embedding_idx` (384-dim cosine on Chunk.embedding)
+- **Text indexes**: concept_name_text, author_name_text
 - **Link properties**: url, title, domain, forgeScore, contentType, keyConcepts, authors, keyTakeaways, difficulty, embedding
+- **Concept properties**: name (UNIQUE, lowercase normalized)
+- **Author properties**: name (UNIQUE)
+- **Chunk properties**: id (UNIQUE, `${linkUrl}#chunk-${index}`), text, index, embedding
 - **User properties**: discordId, displayName, username, avatarUrl, interests
 
 ## Document Processing
@@ -89,6 +95,8 @@ npm run typecheck    # tsc --noEmit
 - `forge_find_tools` — Find tools for a technology
 - `forge_related` — Find related links (graph + vector)
 - `forge_recent` — Get N most recent additions
+- `forge_concepts` — Browse concept network, list top concepts, explore by concept name
+- `forge_authors` — Find papers by author, list top authors, discover co-authors
 
 ## Bot Behavior
 

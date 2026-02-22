@@ -861,6 +861,8 @@
       <div class="stat" id="stat-links"><strong>-</strong> links</div>
       <div class="stat" id="stat-categories"><strong>-</strong> categories</div>
       <div class="stat" id="stat-tools"><strong>-</strong> tools</div>
+      <div class="stat" id="stat-concepts"><strong>-</strong> concepts</div>
+      <div class="stat" id="stat-authors"><strong>-</strong> authors</div>
       <div class="stat" id="stat-avg">avg forge <strong>-</strong></div>
     </div>
   </div>
@@ -1165,6 +1167,8 @@ async function loadStats() {
   document.querySelector('#stat-links strong').textContent = data.counts.links;
   document.querySelector('#stat-categories strong').textContent = data.counts.categories;
   document.querySelector('#stat-tools strong').textContent = data.counts.tools;
+  document.querySelector('#stat-concepts strong').textContent = data.counts.concepts ?? 0;
+  document.querySelector('#stat-authors strong').textContent = data.counts.authors ?? 0;
   document.querySelector('#stat-avg strong').textContent = data.avgScore;
 
   if (scoreChart) { scoreChart.destroy(); scoreChart = null; }

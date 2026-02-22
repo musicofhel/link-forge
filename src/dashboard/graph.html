@@ -448,6 +448,8 @@
             <label class="filter-check"><input type="checkbox" checked data-type="technology"><span class="box"></span><span class="dot" style="background:#3498db"></span> Technologies <span class="count" id="count-technology">0</span></label>
             <label class="filter-check"><input type="checkbox" checked data-type="tool"><span class="box"></span><span class="dot" style="background:#57f287"></span> Tools <span class="count" id="count-tool">0</span></label>
             <label class="filter-check"><input type="checkbox" checked data-type="user"><span class="box"></span><span class="dot" style="background:#eb459e"></span> Users <span class="count" id="count-user">0</span></label>
+            <label class="filter-check"><input type="checkbox" checked data-type="concept"><span class="box"></span><span class="dot" style="background:#2dd4bf"></span> Concepts <span class="count" id="count-concept">0</span></label>
+            <label class="filter-check"><input type="checkbox" checked data-type="author"><span class="box"></span><span class="dot" style="background:#fbbf24"></span> Authors <span class="count" id="count-author">0</span></label>
             <label class="filter-check" id="tag-filter-row" style="display:none"><input type="checkbox" checked data-type="tag"><span class="box"></span><span class="dot" style="background:#b07cc6"></span> Tags <span class="count" id="count-tag">0</span></label>
           </div>
           <div class="drawer-group">
@@ -671,6 +673,8 @@ const NODE_COLORS = {
   technology: '#3498db',
   tool: '#57f287',
   user: '#eb459e',
+  concept: '#2dd4bf',
+  author: '#fbbf24',
   tag: '#b07cc6',
 };
 const EDGE_COLORS = {
@@ -683,6 +687,8 @@ const EDGE_COLORS = {
   SUBCATEGORY_OF: '#fee75c',
   USED_WITH: '#8e9297',
   TAGGED_WITH: '#b07cc6',
+  RELATES_TO_CONCEPT: '#2dd4bf',
+  AUTHORED_BY: '#fbbf24',
 };
 const SCORE_COLORS = {
   artifact: '#5865f2', guide: '#57f287', analysis: '#fee75c',
@@ -793,7 +799,7 @@ function nodeColor(node) {
 }
 
 function nodeRadius(node) {
-  const base = { link: 3, category: 5, technology: 4, tool: 4, user: 8, tag: 3 };
+  const base = { link: 3, category: 5, technology: 4, tool: 4, user: 8, concept: 3, author: 3, tag: 3 };
   let r = base[node.nodeType] || 3;
   const cc = node.connectionCount || 0;
   if (node.nodeType === 'link') {
@@ -994,7 +1000,7 @@ function updateStats() {
 function updateNodeCounts() {
   const counts = {};
   for (const n of visibleNodes) counts[n.nodeType] = (counts[n.nodeType] || 0) + 1;
-  for (const t of ['link','category','technology','tool','user','tag']) {
+  for (const t of ['link','category','technology','tool','user','concept','author','tag']) {
     const el = document.getElementById('count-' + t);
     if (el) el.textContent = (counts[t] || 0).toLocaleString();
   }
@@ -2368,6 +2374,8 @@ function buildLegend() {
       { color: '#3498db', label: 'Technologies' },
       { color: '#57f287', label: 'Tools' },
       { color: '#eb459e', label: 'Users', ring: true },
+      { color: '#2dd4bf', label: 'Concepts' },
+      { color: '#fbbf24', label: 'Authors' },
     ];
 
     // Link color scheme

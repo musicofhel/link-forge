@@ -29,6 +29,10 @@ import {
 } from "../graph/relationships.js";
 import { createUser, getUserInterests } from "../graph/repositories/user.repository.js";
 import { updateLinkCount } from "../graph/repositories/category.repository.js";
+import { createConcept, linkRelatesToConcept } from "../graph/repositories/concept.repository.js";
+import { createAuthor, linkAuthoredBy } from "../graph/repositories/author.repository.js";
+import { createChunk } from "../graph/repositories/chunk.repository.js";
+import { chunkText } from "../embeddings/chunker.js";
 import { extractUrlsFromContent } from "./link-extractor.js";
 import type { Driver } from "neo4j-driver";
 
@@ -198,6 +202,41 @@ export function createProcessor(
           avatarUrl: "",
         });
         await sharedBy(session, item.url, item.discord_author_id);
+      }
+
+      // Step 4b: Create Concept nodes from key_concepts
+      for (const concept of categorization.key_concepts) {
+        const normalized = concept.toLowerCase().trim();
+        if (normalized) {
+          await createConcept(session, normalized);
+          await linkRelatesToConcept(session, item.url, normalized);
+        }
+      }
+
+      // Step 4c: Create Author nodes
+      for (const author of categorization.authors ?? []) {
+        const trimmed = author.trim();
+        if (trimmed) {
+          await createAuthor(session, trimmed);
+          await linkAuthoredBy(session, item.url, trimmed);
+        }
+      }
+
+      // Step 4d: Generate chunk-level embeddings
+      const fullText = `${scraped.title}. ${scraped.description}. ${scraped.content}`;
+      const chunks = chunkText(fullText, { chunkSize: 500, overlap: 50 });
+      if (chunks.length > 1) {
+        log.debug({ chunkCount: chunks.length }, "Creating chunk embeddings");
+        for (const chunk of chunks) {
+          const chunkEmbedding = await embeddings.embed(chunk.text);
+          await createChunk(session, {
+            id: `${item.url}#chunk-${chunk.index}`,
+            text: chunk.text,
+            index: chunk.index,
+            embedding: chunkEmbedding,
+            linkUrl: item.url,
+          });
+        }
       }
 
       // Step 5: Extract embedded URLs and enqueue them

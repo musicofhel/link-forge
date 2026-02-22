@@ -313,6 +313,24 @@ async function loadDetail() {
       html += '</div></div>';
     }
 
+    // Concepts (from graph relationships)
+    if (data.concepts && data.concepts.length > 0) {
+      html += `<div class="section"><div class="section-label">Concepts</div><div class="pill-row">`;
+      for (const c of data.concepts) {
+        html += `<span class="pill" style="background:#2dd4bf33;border-color:#2dd4bf;color:#2dd4bf">${escapeHtml(c)}</span>`;
+      }
+      html += '</div></div>';
+    }
+
+    // Authors (from graph relationships)
+    if (data.graphAuthors && data.graphAuthors.length > 0) {
+      html += `<div class="section"><div class="section-label">Authors</div><div class="pill-row">`;
+      for (const a of data.graphAuthors) {
+        html += `<span class="pill" style="background:#fbbf2433;border-color:#fbbf24;color:#fbbf24">${escapeHtml(a)}</span>`;
+      }
+      html += '</div></div>';
+    }
+
     // Tags
     if (data.tags.length > 0) {
       html += `<div class="section"><div class="section-label">Tags (${data.tags.length})</div><div class="pill-row">`;

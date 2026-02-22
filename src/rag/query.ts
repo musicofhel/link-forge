@@ -62,7 +62,54 @@ export async function askQuestion(
 
   const session = neo4jDriver.session();
   try {
-    // 2. Vector search for relevant links
+    // 2a. Chunk-level vector search (finer granularity)
+    let chunkResults: { chunkText: string; chunkScore: number; linkUrl: string; linkTitle: string; forgeScore: number; contentType: string }[] = [];
+    try {
+      const chunkRes = await session.run(
+        `CALL db.index.vector.queryNodes('chunk_embedding_idx', 40, $embedding)
+         YIELD node AS chunk, score
+         MATCH (link:Link)-[:HAS_CHUNK]->(chunk)
+         RETURN link.url AS linkUrl, link.title AS linkTitle,
+                COALESCE(link.forgeScore, 0) AS forgeScore,
+                COALESCE(link.contentType, 'reference') AS contentType,
+                chunk.text AS chunkText, score AS chunkScore
+         ORDER BY score DESC`,
+        { embedding: questionEmbedding },
+      );
+      chunkResults = chunkRes.records.map(r => ({
+        chunkText: r.get("chunkText") as string,
+        chunkScore: toNum(r.get("chunkScore")),
+        linkUrl: r.get("linkUrl") as string,
+        linkTitle: (r.get("linkTitle") as string) || "",
+        forgeScore: toNum(r.get("forgeScore")),
+        contentType: (r.get("contentType") as string) || "reference",
+      }));
+      logger.info({ chunkMatches: chunkResults.length }, "Chunk vector search complete");
+    } catch {
+      // Chunk index may not exist yet — gracefully fall back to doc-level only
+      logger.debug("Chunk vector index not available, using doc-level search only");
+    }
+
+    // Group chunks by parent link, keep top 3 per link
+    const linkChunkMap = new Map<string, {
+      url: string; title: string; forgeScore: number; contentType: string;
+      chunks: { text: string; score: number }[];
+      bestScore: number;
+    }>();
+    for (const cr of chunkResults) {
+      if (!linkChunkMap.has(cr.linkUrl)) {
+        linkChunkMap.set(cr.linkUrl, {
+          url: cr.linkUrl, title: cr.linkTitle, forgeScore: cr.forgeScore,
+          contentType: cr.contentType, chunks: [], bestScore: cr.chunkScore,
+        });
+      }
+      const entry = linkChunkMap.get(cr.linkUrl)!;
+      if (entry.chunks.length < 3) {
+        entry.chunks.push({ text: cr.chunkText, score: cr.chunkScore });
+      }
+    }
+
+    // 2b. Document-level vector search
     const vectorRes = await session.run(
       `CALL db.index.vector.queryNodes('link_embedding_idx', 20, $embedding)
        YIELD node AS l, score
@@ -73,7 +120,7 @@ export async function askQuestion(
       { embedding: questionEmbedding },
     );
 
-    const topLinks = vectorRes.records.map(r => ({
+    const docLinks = vectorRes.records.map(r => ({
       url: r.get("url") as string,
       title: (r.get("title") as string) || "",
       description: (r.get("description") as string) || "",
@@ -84,7 +131,44 @@ export async function askQuestion(
       relevance: toNum(r.get("relevance")),
     }));
 
-    logger.info({ matches: topLinks.length, topRelevance: topLinks[0]?.relevance }, "Vector search complete");
+    // Merge: chunk results first (they have passage-level evidence), then doc-level fills gaps
+    const mergedUrls = new Set<string>();
+    const topLinks: {
+      url: string; title: string; description: string; forgeScore: number;
+      contentType: string; purpose: string; domain: string; relevance: number;
+      chunks?: { text: string; score: number }[];
+    }[] = [];
+
+    // Add chunk-sourced links first (sorted by best chunk score)
+    const chunkEntries = [...linkChunkMap.values()].sort((a, b) => b.bestScore - a.bestScore);
+    for (const entry of chunkEntries) {
+      const docMatch = docLinks.find(d => d.url === entry.url);
+      topLinks.push({
+        url: entry.url,
+        title: entry.title,
+        description: docMatch?.description || "",
+        forgeScore: entry.forgeScore,
+        contentType: entry.contentType,
+        purpose: docMatch?.purpose || "",
+        domain: docMatch?.domain || "",
+        relevance: entry.bestScore,
+        chunks: entry.chunks,
+      });
+      mergedUrls.add(entry.url);
+    }
+
+    // Fill from doc-level results
+    for (const doc of docLinks) {
+      if (!mergedUrls.has(doc.url)) {
+        topLinks.push(doc);
+        mergedUrls.add(doc.url);
+      }
+    }
+
+    // Keep top 15 combined results
+    topLinks.splice(15);
+
+    logger.info({ matches: topLinks.length, chunkLinks: chunkEntries.length, topRelevance: topLinks[0]?.relevance }, "Vector search complete");
 
     // 3. Get categories + tools + techs + users for top links
     const linkUrls = topLinks.map(l => l.url);
@@ -112,6 +196,37 @@ export async function askQuestion(
         technologies: (r.get("technologies") as string[]).filter(Boolean),
         sharedBy: (r.get("sharedBy") as string[]).filter(Boolean),
       };
+    }
+
+    // 3b. Concept-aware expansion: find related links via shared concepts
+    const conceptExpansion: { url: string; title: string; forgeScore: number; viaConcept: string }[] = [];
+    try {
+      const conceptRes = await session.run(
+        `MATCH (l:Link)-[:RELATES_TO_CONCEPT]->(c:Concept)
+         WHERE l.url IN $topUrls
+         WITH c, count(l) AS relevance
+         ORDER BY relevance DESC LIMIT 10
+         MATCH (c)<-[:RELATES_TO_CONCEPT]-(related:Link)
+         WHERE NOT related.url IN $topUrls
+         RETURN DISTINCT related.url AS url, related.title AS title,
+                COALESCE(related.forgeScore, 0) AS forgeScore, c.name AS viaConcept
+         LIMIT 10`,
+        { topUrls: linkUrls },
+      );
+      for (const r of conceptRes.records) {
+        conceptExpansion.push({
+          url: r.get("url") as string,
+          title: (r.get("title") as string) || "",
+          forgeScore: toNum(r.get("forgeScore")),
+          viaConcept: r.get("viaConcept") as string,
+        });
+      }
+      if (conceptExpansion.length > 0) {
+        logger.info({ conceptExpansionCount: conceptExpansion.length }, "Concept expansion found related links");
+      }
+    } catch {
+      // Concept nodes may not exist yet
+      logger.debug("Concept expansion skipped (no Concept nodes)");
     }
 
     // 4. Get user expertise summaries
@@ -170,6 +285,21 @@ export async function askQuestion(
       if (rels.tools.length) contextParts.push(`Tools mentioned: ${rels.tools.join(", ")}`);
       if (rels.technologies.length) contextParts.push(`Technologies: ${rels.technologies.join(", ")}`);
       if (rels.sharedBy.length) contextParts.push(`Shared by: ${rels.sharedBy.join(", ")}`);
+      // Include chunk excerpts if available
+      if (link.chunks && link.chunks.length > 0) {
+        contextParts.push("**Key Passages:**");
+        for (const chunk of link.chunks) {
+          contextParts.push(`> "${chunk.text.slice(0, 300)}${chunk.text.length > 300 ? "..." : ""}" (relevance: ${(chunk.score * 100).toFixed(0)}%)`);
+        }
+      }
+    }
+
+    // Concept-expanded links (related via shared concepts)
+    if (conceptExpansion.length > 0) {
+      contextParts.push("\n## Related Links (discovered via shared concepts)");
+      for (const link of conceptExpansion) {
+        contextParts.push(`- **${link.title || link.url}** (forge: ${link.forgeScore}, via concept: "${link.viaConcept}")`);
+      }
     }
 
     contextParts.push("\n## Community Members & Expertise");

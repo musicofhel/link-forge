@@ -40,6 +40,23 @@ export interface ToolNode {
   url: string;
 }
 
+export interface ConceptNode {
+  name: string;
+  mentionCount: number;
+}
+
+export interface AuthorNode {
+  name: string;
+  mentionCount: number;
+}
+
+export interface ChunkNode {
+  id: string;
+  text: string;
+  index: number;
+  embedding: number[];
+}
+
 export interface UserNode {
   discordId: string;
   username: string;

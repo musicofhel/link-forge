@@ -8,16 +8,26 @@ const CONSTRAINTS = [
   "CREATE CONSTRAINT technology_name_unique IF NOT EXISTS FOR (tech:Technology) REQUIRE tech.name IS UNIQUE",
   "CREATE CONSTRAINT tool_name_unique IF NOT EXISTS FOR (tool:Tool) REQUIRE tool.name IS UNIQUE",
   "CREATE CONSTRAINT user_discord_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.discordId IS UNIQUE",
+  "CREATE CONSTRAINT concept_name_unique IF NOT EXISTS FOR (c:Concept) REQUIRE c.name IS UNIQUE",
+  "CREATE CONSTRAINT author_name_unique IF NOT EXISTS FOR (a:Author) REQUIRE a.name IS UNIQUE",
+  "CREATE CONSTRAINT chunk_id_unique IF NOT EXISTS FOR (ch:Chunk) REQUIRE ch.id IS UNIQUE",
 ];
 
 const TEXT_INDEXES = [
   "CREATE INDEX link_title_idx IF NOT EXISTS FOR (l:Link) ON (l.title)",
   "CREATE INDEX link_description_idx IF NOT EXISTS FOR (l:Link) ON (l.description)",
+  "CREATE TEXT INDEX concept_name_text IF NOT EXISTS FOR (c:Concept) ON (c.name)",
+  "CREATE TEXT INDEX author_name_text IF NOT EXISTS FOR (a:Author) ON (a.name)",
 ];
 
-const VECTOR_INDEX = `CREATE VECTOR INDEX link_embedding_idx IF NOT EXISTS
+const VECTOR_INDEXES = [
+  `CREATE VECTOR INDEX link_embedding_idx IF NOT EXISTS
 FOR (l:Link) ON (l.embedding)
-OPTIONS {indexConfig: {\`vector.dimensions\`: 384, \`vector.similarity_function\`: 'cosine'}}`;
+OPTIONS {indexConfig: {\`vector.dimensions\`: 384, \`vector.similarity_function\`: 'cosine'}}`,
+  `CREATE VECTOR INDEX chunk_embedding_idx IF NOT EXISTS
+FOR (ch:Chunk) ON (ch.embedding)
+OPTIONS {indexConfig: {\`vector.dimensions\`: 384, \`vector.similarity_function\`: 'cosine'}}`,
+];
 
 export async function setupSchema(
   session: Session,
@@ -35,9 +45,11 @@ export async function setupSchema(
     logger.debug({ cypher }, "Text index created");
   }
 
-  logger.info("Setting up vector index...");
-  await session.run(VECTOR_INDEX);
-  logger.debug("Vector index created");
+  logger.info("Setting up vector indexes...");
+  for (const cypher of VECTOR_INDEXES) {
+    await session.run(cypher);
+    logger.debug({ cypher }, "Vector index created");
+  }
 
   logger.info("Neo4j schema setup complete");
 }

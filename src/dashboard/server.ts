@@ -274,15 +274,19 @@ export function createDashboardServer(
         ORDER BY count DESC
       `, uf.params);
 
-      // Only compute global tag/tool/tech counts when no user filter
-      let tagCount = 0, toolCount = 0, techCount = 0;
+      // Only compute global tag/tool/tech/concept/author counts when no user filter
+      let tagCount = 0, toolCount = 0, techCount = 0, conceptCount = 0, authorCount = 0;
       if (!userId) {
         const tagsRes = await session.run("MATCH (t:Tag) RETURN count(t) AS count");
         const toolsRes = await session.run("MATCH (t:Tool) RETURN count(t) AS count");
         const techsRes = await session.run("MATCH (t:Technology) RETURN count(t) AS count");
+        const conceptsRes = await session.run("MATCH (c:Concept) RETURN count(c) AS count");
+        const authorsRes2 = await session.run("MATCH (a:Author) RETURN count(a) AS count");
         tagCount = toNum(tagsRes.records[0]?.get("count"));
         toolCount = toNum(toolsRes.records[0]?.get("count"));
         techCount = toNum(techsRes.records[0]?.get("count"));
+        conceptCount = toNum(conceptsRes.records[0]?.get("count"));
+        authorCount = toNum(authorsRes2.records[0]?.get("count"));
       } else {
         const tagsRes = await session.run(
           `MATCH ${uf.match}-[:TAGGED_WITH]->(t:Tag) RETURN count(DISTINCT t) AS count`, uf.params);
@@ -290,9 +294,15 @@ export function createDashboardServer(
           `MATCH ${uf.match}-[:MENTIONS_TOOL]->(t:Tool) RETURN count(DISTINCT t) AS count`, uf.params);
         const techsRes = await session.run(
           `MATCH ${uf.match}-[:MENTIONS_TECH]->(t:Technology) RETURN count(DISTINCT t) AS count`, uf.params);
+        const conceptsRes = await session.run(
+          `MATCH ${uf.match}-[:RELATES_TO_CONCEPT]->(c:Concept) RETURN count(DISTINCT c) AS count`, uf.params);
+        const authorsRes2 = await session.run(
+          `MATCH ${uf.match}-[:AUTHORED_BY]->(a:Author) RETURN count(DISTINCT a) AS count`, uf.params);
         tagCount = toNum(tagsRes.records[0]?.get("count"));
         toolCount = toNum(toolsRes.records[0]?.get("count"));
         techCount = toNum(techsRes.records[0]?.get("count"));
+        conceptCount = toNum(conceptsRes.records[0]?.get("count"));
+        authorCount = toNum(authorsRes2.records[0]?.get("count"));
       }
 
       const scoreRec = scoreRes.records[0]!;
@@ -304,6 +314,8 @@ export function createDashboardServer(
           tags: tagCount,
           tools: toolCount,
           technologies: techCount,
+          concepts: conceptCount,
+          authors: authorCount,
         },
         scoreDistribution: {
           artifact: toNum(scoreRec.get("artifact")),
@@ -435,9 +447,9 @@ export function createDashboardServer(
   // Full graph data API — all node types (except tags) with connection counts
   app.get("/api/graph/full", async (_req, res) => {
     // Each parallel query needs its own session (Neo4j doesn't allow concurrent queries on one session)
-    const sessions = Array.from({ length: 7 }, () => neo4jDriver.session());
+    const sessions = Array.from({ length: 9 }, () => neo4jDriver.session());
     try {
-      const [linksRes, catsRes, techsRes, toolsRes, usersRes, edgesRes, metaRes] = await Promise.all([
+      const [linksRes, catsRes, techsRes, toolsRes, usersRes, edgesRes, metaRes, conceptsRes, authorsRes] = await Promise.all([
         sessions[0]!.run(`
           MATCH (l:Link)
           OPTIONAL MATCH (l)-[r]-() WHERE NOT type(r) = 'TAGGED_WITH'
@@ -474,7 +486,8 @@ export function createDashboardServer(
         `),
         sessions[5]!.run(`
           MATCH (a)-[r]->(b)
-          WHERE NOT type(r) = 'TAGGED_WITH' AND NOT a:Tag AND NOT b:Tag
+          WHERE NOT type(r) = 'TAGGED_WITH' AND NOT type(r) = 'HAS_CHUNK'
+            AND NOT a:Tag AND NOT b:Tag AND NOT a:Chunk AND NOT b:Chunk
           RETURN
             CASE
               WHEN a:Link THEN a.url
@@ -482,6 +495,8 @@ export function createDashboardServer(
               WHEN a:Technology THEN 'tech:' + a.name
               WHEN a:Tool THEN 'tool:' + a.name
               WHEN a:User THEN 'user:' + a.discordId
+              WHEN a:Concept THEN 'concept:' + a.name
+              WHEN a:Author THEN 'author:' + a.name
             END AS source,
             CASE
               WHEN b:Link THEN b.url
@@ -489,6 +504,8 @@ export function createDashboardServer(
               WHEN b:Technology THEN 'tech:' + b.name
               WHEN b:Tool THEN 'tool:' + b.name
               WHEN b:User THEN 'user:' + b.discordId
+              WHEN b:Concept THEN 'concept:' + b.name
+              WHEN b:Author THEN 'author:' + b.name
             END AS target,
             type(r) AS type
         `),
@@ -498,7 +515,21 @@ export function createDashboardServer(
           MATCH (t:Technology) WITH links, categories, count(t) AS technologies
           MATCH (tl:Tool) WITH links, categories, technologies, count(tl) AS tools
           MATCH (u:User) WITH links, categories, technologies, tools, count(u) AS users
-          RETURN links, categories, technologies, tools, users
+          OPTIONAL MATCH (con:Concept) WITH links, categories, technologies, tools, users, count(con) AS concepts
+          OPTIONAL MATCH (au:Author) WITH links, categories, technologies, tools, users, concepts, count(au) AS authors
+          RETURN links, categories, technologies, tools, users, concepts, authors
+        `),
+        sessions[7]!.run(`
+          MATCH (c:Concept)<-[r:RELATES_TO_CONCEPT]-()
+          WITH c, count(r) AS mentions
+          ORDER BY mentions DESC LIMIT 200
+          RETURN c.name AS name, mentions AS connectionCount
+        `),
+        sessions[8]!.run(`
+          MATCH (a:Author)<-[r:AUTHORED_BY]-()
+          WITH a, count(r) AS authored
+          ORDER BY authored DESC LIMIT 100
+          RETURN a.name AS name, authored AS connectionCount
         `),
       ]);
 
@@ -542,6 +573,18 @@ export function createDashboardServer(
           interests: (r.get("interests") ?? []) as string[],
           connectionCount: toNum(r.get("connectionCount")),
         })),
+        ...conceptsRes.records.map((r) => ({
+          id: `concept:${r.get("name") as string}`,
+          title: r.get("name") as string,
+          nodeType: "concept" as const,
+          connectionCount: toNum(r.get("connectionCount")),
+        })),
+        ...authorsRes.records.map((r) => ({
+          id: `author:${r.get("name") as string}`,
+          title: r.get("name") as string,
+          nodeType: "author" as const,
+          connectionCount: toNum(r.get("connectionCount")),
+        })),
       ];
 
       const edges = edgesRes.records
@@ -559,6 +602,8 @@ export function createDashboardServer(
         totalTechnologies: toNum(metaRec.get("technologies")),
         totalTools: toNum(metaRec.get("tools")),
         totalUsers: toNum(metaRec.get("users")),
+        totalConcepts: toNum(metaRec.get("concepts")),
+        totalAuthors: toNum(metaRec.get("authors")),
       };
 
       res.json({ nodes, edges, meta });
@@ -585,6 +630,10 @@ export function createDashboardServer(
         label = "Tool"; matchProp = "name"; matchVal = nodeId.slice(5);
       } else if (nodeId.startsWith("user:")) {
         label = "User"; matchProp = "discordId"; matchVal = nodeId.slice(5);
+      } else if (nodeId.startsWith("concept:")) {
+        label = "Concept"; matchProp = "name"; matchVal = nodeId.slice(8);
+      } else if (nodeId.startsWith("author:")) {
+        label = "Author"; matchProp = "name"; matchVal = nodeId.slice(7);
       } else {
         label = "Link"; matchProp = "url"; matchVal = nodeId;
       }
@@ -776,11 +825,15 @@ export function createDashboardServer(
         OPTIONAL MATCH (l)-[:MENTIONS_TECH]->(tech:Technology)
         OPTIONAL MATCH (l)-[:MENTIONS_TOOL]->(tool:Tool)
         OPTIONAL MATCH (l)-[:SHARED_BY]->(u:User)
+        OPTIONAL MATCH (l)-[:RELATES_TO_CONCEPT]->(con:Concept)
+        OPTIONAL MATCH (l)-[:AUTHORED_BY]->(au:Author)
         RETURN l, collect(DISTINCT c.name) AS categories,
                collect(DISTINCT t.name) AS tags,
                collect(DISTINCT tech.name) AS technologies,
                collect(DISTINCT { name: tool.name, url: tool.url }) AS tools,
-               collect(DISTINCT { displayName: u.displayName, avatarUrl: u.avatarUrl }) AS sharedBy
+               collect(DISTINCT { displayName: u.displayName, avatarUrl: u.avatarUrl }) AS sharedBy,
+               collect(DISTINCT con.name) AS concepts,
+               collect(DISTINCT au.name) AS authors
       `, { url });
 
       if (result.records.length === 0) {
@@ -837,6 +890,8 @@ export function createDashboardServer(
           .filter((t) => t.name != null),
         sharedBy: (rec.get("sharedBy") as Array<{ displayName: string | null; avatarUrl: string | null }>)
           .filter((u) => u.displayName != null),
+        concepts: rec.get("concepts").filter((c: string | null) => c != null),
+        graphAuthors: rec.get("authors").filter((a: string | null) => a != null),
         relatedLinks: relResult.records.map((r) => ({
           url: r.get("url") as string,
           title: r.get("title") as string,
