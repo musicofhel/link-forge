@@ -45,6 +45,14 @@
 ### Sync Engine (Feb 22, 2026)
 - Failover client, health monitor, and sync engine committed but **never tested in multi-instance setup**. Config, scheduler, export/import logic is code-complete but unvalidated.
 
+### Knowledge Graph Deep Improvement (Feb 22, 2026)
+- Chunk embeddings generated for ~1,580/2,098 links (~370 short links skipped) — chunk quality not spot-checked.
+- RAG chunk retrieval not tested end-to-end via `/forge ask`.
+- Concept/Author extraction quality depends on Claude CLI prompt — varies by content type and length.
+- Dashboard concept/author visualization not browser-tested.
+- `forge_concepts` and `forge_authors` MCP tools not tested via Claude Code.
+- Concept-aware RAG expansion (graph traversal via shared concepts) not tested for relevance quality.
+
 ## Recommended QC Steps
 
 If you want to validate everything works:
