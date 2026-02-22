@@ -1,6 +1,6 @@
 # Link Forge
 
-Personal knowledge forager — drop links and documents into a Discord channel, an agent scrapes/categorizes/embeds them into a Neo4j graph database, and an MCP server lets any Claude Code session query the collected knowledge.
+Personal knowledge forager — the Discord bot captures links and documents from the entire guild, scrapes/categorizes/embeds them into a Neo4j graph database, and an MCP server lets any Claude Code session query the collected knowledge.
 
 > **Note**: See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for untested features and QC warnings.
 
@@ -73,12 +73,14 @@ Local Inbox Watcher ───┤                                  ↑
 Google Drive Poller ───┘                            Dashboard (D3)
 ```
 
-- **Scraping**: fetch + @mozilla/readability
+- **Scraping**: fetch + @mozilla/readability + academic DOI fallback (Unpaywall OA PDFs, Semantic Scholar)
 - **File extraction**: officeparser (PDF/DOCX/PPTX/XLSX), epub2 (EPUB)
 - **Categorization**: Claude Code CLI (`claude -p`) with user interest profiles
 - **Embeddings**: all-MiniLM-L6-v2 (384-dim, runs on CPU)
 - **Search**: Hybrid vector + keyword + graph traversal
+- **Graph**: Failover client (local + remote Neo4j), health monitor, sync engine
 - **Security**: SSRF protection, rate limiting, API key auth, path traversal guards
+- **Bot behavior**: Guild-wide scraping, emoji reactions only in wobblychair channel
 
 ## Development
 

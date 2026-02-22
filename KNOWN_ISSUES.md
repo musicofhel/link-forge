@@ -39,6 +39,12 @@
 ### 3 Inactive Users Without Interest Profiles
 - `artvandelay` (1 link), `BitcoinMarty` (1 link), `Joe Datti` (0 links) — too few links to infer meaningful interests. Profiles were not set.
 
+### Category Deduplication Needed
+- 606 categories in Neo4j — many near-duplicates (e.g., "Web Development" vs "Web Dev"). No automated merge logic yet.
+
+### Sync Engine (Feb 22, 2026)
+- Failover client, health monitor, and sync engine committed but **never tested in multi-instance setup**. Config, scheduler, export/import logic is code-complete but unvalidated.
+
 ## Recommended QC Steps
 
 If you want to validate everything works:
@@ -48,5 +54,6 @@ If you want to validate everything works:
 3. **Check reprocessing quality** — `MATCH (l:Link) WHERE l.forgeScore IS NOT NULL RETURN l.title, l.forgeScore, l.contentType LIMIT 10` in Neo4j browser
 4. **Test dashboard auth** — visit `http://localhost:3848/dashboard?key=<your-key>` and verify data loads
 5. **Test rate limiting** — hit `/api/ask` >20 times in 15 minutes, verify 429 response
-6. **Run test suite** — `npm test` (115 tests should pass)
-7. **Typecheck** — `npm run typecheck` (0 errors expected)
+6. **Test academic DOI fallback** — queue a link like `https://doi.org/10.1145/...` that returns 403, verify Unpaywall/Semantic Scholar fallback fires
+7. **Run test suite** — `npm test` (all tests should pass)
+8. **Typecheck** — `npm run typecheck` (0 errors expected)
