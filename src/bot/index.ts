@@ -1,4 +1,5 @@
 import {
+  ChannelType,
   Client,
   GatewayIntentBits,
   REST,
@@ -301,6 +302,13 @@ export function createBot(
     // Guild-wide: scrape all channels (ignore DMs)
     if (!message.guild) return;
 
+    // Only react with emojis in channels under the "corners" category
+    const parentChannel = message.channel.isThread()
+      ? message.channel.parent?.parent
+      : "parent" in message.channel ? message.channel.parent : null;
+    const useReactions = parentChannel?.type === ChannelType.GuildCategory
+      && parentChannel.name.toLowerCase() === "corners";
+
     // --- Handle URLs ---
     const extracted = extractUrls(message.content);
     for (const { url, comment } of extracted) {
@@ -313,16 +321,16 @@ export function createBot(
           discordAuthorId: message.author.id,
           discordAuthorName: message.author.displayName ?? message.author.username,
         });
-        await addReaction(message, REACTIONS.QUEUED);
+        if (useReactions) await addReaction(message, REACTIONS.QUEUED);
       } catch (err: unknown) {
         if (
           err instanceof Error &&
           err.message.includes("UNIQUE constraint failed")
         ) {
-          await addReaction(message, REACTIONS.DUPLICATE);
+          if (useReactions) await addReaction(message, REACTIONS.DUPLICATE);
         } else {
           logger.error({ err, url }, "Failed to enqueue URL");
-          await addReaction(message, REACTIONS.FAILED);
+          if (useReactions) await addReaction(message, REACTIONS.FAILED);
         }
       }
     }
@@ -341,7 +349,7 @@ export function createBot(
         const res = await fetch(attachment.url);
         if (!res.ok) {
           logger.error({ file: attachment.name, status: res.status }, "Failed to download attachment");
-          await addReaction(message, REACTIONS.FAILED);
+          if (useReactions) await addReaction(message, REACTIONS.FAILED);
           continue;
         }
         const buffer = Buffer.from(await res.arrayBuffer());
@@ -366,14 +374,14 @@ export function createBot(
         });
 
         if (queued) {
-          await addReaction(message, REACTIONS.QUEUED);
+          if (useReactions) await addReaction(message, REACTIONS.QUEUED);
           logger.info({ file: attachment.name, hash: hash.slice(0, 12) }, "File attachment enqueued");
         } else {
-          await addReaction(message, REACTIONS.DUPLICATE);
+          if (useReactions) await addReaction(message, REACTIONS.DUPLICATE);
         }
       } catch (err) {
         logger.error({ err, file: attachment.name }, "Failed to process attachment");
-        await addReaction(message, REACTIONS.FAILED);
+        if (useReactions) await addReaction(message, REACTIONS.FAILED);
       }
     }
   });
