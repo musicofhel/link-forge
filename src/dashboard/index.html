@@ -101,6 +101,58 @@
     }
     .tab.active .link-count { background: #5865f233; color: #7983f5; }
 
+    /* Tab overflow dropdown */
+    .tab-overflow {
+      position: relative;
+    }
+    .tab-overflow-btn {
+      padding: 10px 14px;
+      background: #2b2d31;
+      color: #8e9297;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-overflow-btn:hover { background: #323439; color: #dbdee1; }
+    .tab-overflow-btn.has-active { color: #7983f5; font-weight: 600; }
+    .tab-overflow-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: #2b2d31;
+      border: 1px solid #3f4147;
+      border-radius: 8px;
+      padding: 4px;
+      z-index: 50;
+      min-width: 200px;
+      max-height: 320px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .tab-overflow-menu.open { display: block; }
+    .tab-overflow-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #8e9297;
+      transition: background 0.1s;
+    }
+    .tab-overflow-item:hover { background: #383a40; color: #dbdee1; }
+    .tab-overflow-item.active { color: #7983f5; background: #5865f220; font-weight: 600; }
+
     /* Header */
     .header {
       background: #2b2d31;
@@ -167,8 +219,8 @@
       overflow: hidden;
     }
     .graph-container svg { width: 100%; height: 100%; }
-    .chart-wrap { position: relative; width: 100%; max-height: 300px; }
-    .chart-wrap canvas { width: 100% !important; height: auto !important; }
+    .chart-wrap { position: relative; width: 100%; height: 200px; }
+    .chart-wrap canvas { width: 100% !important; height: 100% !important; }
 
     /* Graph view tabs */
     .view-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -371,59 +423,105 @@
     .tag-pill:hover { background: #2b2d31cc; }
     .tag-pill .tag-count { color: #7983f5; margin-left: 3px; font-weight: 600; }
 
-    /* Heatmap */
-    .heatmap-container {
+    /* Minor user rows (compact list for low-activity users) */
+    .minor-users-header {
       display: flex;
-      flex-direction: column;
       align-items: center;
       gap: 8px;
-      padding: 8px 0;
+      padding: 8px 0 6px;
+      font-size: 11px;
+      color: #6d7078;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      user-select: none;
     }
-    .heatmap-table { border-collapse: collapse; }
-    .heatmap-table th {
-      font-size: 12px;
-      color: #8e9297;
-      padding: 6px 10px;
-      font-weight: 500;
-      border: none;
-      cursor: default;
-    }
-    .heatmap-table th:hover { color: #8e9297; }
-    .heatmap-table td {
-      text-align: center;
-      padding: 3px;
-      border: none;
-    }
-    .heatmap-cell {
-      width: 72px;
-      height: 72px;
+    .minor-users-header:hover { color: #8e9297; }
+    .minor-users-header .chevron { transition: transform 0.2s; font-size: 10px; }
+    .minor-users-header .chevron.open { transform: rotate(90deg); }
+    .minor-user-list { display: none; }
+    .minor-user-list.open { display: block; }
+    .minor-user-row {
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: background 0.1s;
+    }
+    .minor-user-row:hover { background: #33363b; }
+    .minor-user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 10px;
-      cursor: default;
-      transition: transform 0.15s;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
     }
-    .heatmap-cell:hover { transform: scale(1.08); }
-    .heatmap-cell .hm-val { font-size: 20px; font-weight: 700; color: #fff; }
-    .heatmap-cell .hm-label { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 2px; }
-    .heatmap-cell.self { background: #383a40; }
-    .heatmap-cell.self .hm-val { color: #8e9297; }
-    .heatmap-legend {
+    .minor-user-name { font-size: 13px; color: #dbdee1; font-weight: 500; min-width: 100px; }
+    .minor-user-stat { font-size: 12px; color: #8e9297; min-width: 60px; }
+    .minor-user-stat strong { color: #7983f5; }
+    .minor-user-types { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    /* Overlap pairs */
+    .overlap-pair {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: #8e9297;
-      margin-top: 4px;
-    }
-    .heatmap-legend .lg-bar {
-      width: 120px;
-      height: 8px;
+      gap: 10px;
+      padding: 10px 8px;
+      border-bottom: 1px solid #33363b;
+      transition: background 0.1s;
       border-radius: 4px;
-      background: linear-gradient(to right, #383a40, #5865f2);
     }
+    .overlap-pair:hover { background: #33363b; }
+    .overlap-pair:last-child { border-bottom: none; }
+    .overlap-pair-users {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+    .overlap-pair-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .overlap-pair-amp { color: #6d7078; font-size: 12px; }
+    .overlap-pair-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: #383a40;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .overlap-pair-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: #5865f2;
+      transition: width 0.4s ease;
+    }
+    .overlap-pair-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #8e9297;
+      min-width: 140px;
+      flex-shrink: 0;
+      justify-content: flex-end;
+    }
+    .overlap-pair-stats strong { color: #7983f5; }
 
     /* Shared categories list */
     .shared-cat-row {
@@ -748,10 +846,11 @@
       <div class="card full fade-in" style="animation-delay:0.1s">
         <h2>User Profiles</h2>
         <div class="overlap-grid" id="user-profiles"></div>
+        <div id="user-profiles-minor" style="margin-top:12px"></div>
       </div>
       <div class="card fade-in" style="animation-delay:0.15s">
-        <h2>Category Overlap Heatmap</h2>
-        <div class="heatmap-container" id="heatmap"></div>
+        <h2>Top Overlapping Pairs</h2>
+        <div id="overlap-pairs"></div>
       </div>
       <div class="card fade-in" style="animation-delay:0.15s">
         <h2>Shared Categories</h2>
@@ -798,11 +897,11 @@
         <table>
           <thead>
             <tr>
-              <th data-sort="forgeScore" class="sorted">Score <span class="sort-arrow">▼</span></th>
+              <th data-sort="forgeScore">Score <span class="sort-arrow">▼</span></th>
               <th data-sort="contentType">Type <span class="sort-arrow">▼</span></th>
               <th data-sort="title">Title <span class="sort-arrow">▼</span></th>
               <th data-sort="domain">Domain <span class="sort-arrow">▼</span></th>
-              <th data-sort="savedAt">Added <span class="sort-arrow">▼</span></th>
+              <th data-sort="savedAt" class="sorted">Added <span class="sort-arrow">▼</span></th>
             </tr>
           </thead>
           <tbody id="link-table"></tbody>
@@ -897,12 +996,56 @@ function escapeHtml(s) {
 }
 
 // --- Tab system ---
+const MAX_VISIBLE_TABS = 5;
+
+function selectTab(discordId, displayName) {
+  currentUser = discordId;
+  currentPage = 0;
+  document.getElementById('header-title').textContent = discordId ? displayName : 'Link Forge';
+
+  // Update tab active states
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.querySelector(`.tab[data-user="${discordId}"]`);
+  if (activeTab) activeTab.classList.add('active');
+
+  // Update overflow menu active states
+  document.querySelectorAll('.tab-overflow-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.user === discordId);
+  });
+  const overflowBtn = document.querySelector('.tab-overflow-btn');
+  if (overflowBtn) {
+    const hasActive = document.querySelector('.tab-overflow-item.active');
+    overflowBtn.classList.toggle('has-active', !!hasActive);
+    if (hasActive) {
+      overflowBtn.querySelector('.overflow-label').textContent = displayName;
+    } else {
+      overflowBtn.querySelector('.overflow-label').textContent = 'More';
+    }
+  }
+
+  // Close overflow menu
+  const menu = document.querySelector('.tab-overflow-menu');
+  if (menu) menu.classList.remove('open');
+
+  loadStats();
+  loadLinks();
+  loadGraph();
+  loadOverlap();
+}
+
 async function loadUsers() {
   const res = await apiFetch('/api/users');
   const data = await res.json();
   const bar = document.getElementById('tab-bar');
 
-  data.users.forEach((u, i) => {
+  // Sort by link count descending for tab ordering
+  const sorted = [...data.users].sort((a, b) => b.linkCount - a.linkCount);
+  const visibleUsers = sorted.slice(0, MAX_VISIBLE_TABS);
+  const overflowUsers = sorted.slice(MAX_VISIBLE_TABS);
+
+  // Create visible tabs
+  visibleUsers.forEach((u) => {
+    const origIdx = data.users.indexOf(u);
     const tab = document.createElement('div');
     tab.className = 'tab';
     tab.dataset.user = u.discordId;
@@ -913,35 +1056,64 @@ async function loadUsers() {
       avatar.innerHTML = `<img src="${escapeHtml(u.avatarUrl)}" alt="">`;
     } else {
       avatar.textContent = u.displayName.charAt(0).toUpperCase();
-      avatar.style.background = USER_COLORS[i % USER_COLORS.length];
+      avatar.style.background = USER_COLORS[origIdx % USER_COLORS.length];
     }
 
-    const name = document.createTextNode(u.displayName);
     const count = document.createElement('span');
     count.className = 'link-count';
     count.textContent = u.linkCount;
 
     tab.appendChild(avatar);
-    tab.appendChild(name);
+    tab.appendChild(document.createTextNode(u.displayName));
     tab.appendChild(count);
     bar.appendChild(tab);
   });
 
+  // Create overflow dropdown if needed
+  if (overflowUsers.length > 0) {
+    const overflow = document.createElement('div');
+    overflow.className = 'tab-overflow';
+
+    const btn = document.createElement('button');
+    btn.className = 'tab-overflow-btn';
+    btn.innerHTML = `<span class="overflow-label">More</span> <span style="font-size:10px">▼</span> <span class="link-count">${overflowUsers.length}</span>`;
+
+    const menu = document.createElement('div');
+    menu.className = 'tab-overflow-menu';
+
+    overflowUsers.forEach((u) => {
+      const origIdx = data.users.indexOf(u);
+      const item = document.createElement('div');
+      item.className = 'tab-overflow-item';
+      item.dataset.user = u.discordId;
+      const color = USER_COLORS[origIdx % USER_COLORS.length];
+      item.innerHTML = `
+        <div class="minor-user-avatar" style="background:${color};width:20px;height:20px;font-size:10px">${escapeHtml(u.displayName.charAt(0).toUpperCase())}</div>
+        <span style="flex:1">${escapeHtml(u.displayName)}</span>
+        <span class="link-count">${u.linkCount}</span>
+      `;
+      item.addEventListener('click', () => selectTab(u.discordId, u.displayName));
+      menu.appendChild(item);
+    });
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('open');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', () => menu.classList.remove('open'));
+
+    overflow.appendChild(btn);
+    overflow.appendChild(menu);
+    bar.appendChild(overflow);
+  }
+
+  // Tab click handler for visible tabs
   bar.addEventListener('click', (e) => {
     const tab = e.target.closest('.tab');
     if (!tab) return;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentUser = tab.dataset.user;
-    currentPage = 0;
-
-    const name = currentUser ? tab.textContent.trim().replace(/\d+$/, '').trim() : 'Link Forge';
-    document.getElementById('header-title').textContent = name;
-
-    loadStats();
-    loadLinks();
-    loadGraph();
-    loadOverlap();
+    selectTab(tab.dataset.user, tab.textContent.trim().replace(/\d+$/, '').trim());
   });
 }
 
@@ -967,15 +1139,17 @@ async function loadStats() {
       datasets: [{
         data: [sd.artifact, sd.guide, sd.analysis, sd.pointer, sd.commentary, sd.junk],
         backgroundColor: Object.values(SCORE_COLORS),
-        borderWidth: 0, borderRadius: 4,
+        borderWidth: 0, borderRadius: 3, barPercentage: 0.7,
       }]
     },
     options: {
       indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#8e9297' }, grid: { color: '#33363b' } },
-        y: { ticks: { color: '#dbdee1', font: { size: 12 } }, grid: { display: false } }
+        x: { ticks: { color: '#8e9297', font: { size: 11 } }, grid: { color: '#33363b' } },
+        y: { ticks: { color: '#dbdee1', font: { size: 11 } }, grid: { display: false } }
       }
     }
   });
@@ -991,11 +1165,13 @@ async function loadStats() {
       }]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false,
       cutout: '55%',
       plugins: {
         legend: {
           position: 'right',
-          labels: { color: '#dbdee1', font: { size: 12 }, padding: 12, usePointStyle: true, pointStyleWidth: 10 }
+          labels: { color: '#dbdee1', font: { size: 11 }, padding: 8, usePointStyle: true, pointStyleWidth: 10 }
         }
       }
     }
@@ -1004,7 +1180,7 @@ async function loadStats() {
 
 // --- Links Table ---
 let allLinks = [];
-let sortKey = 'forgeScore';
+let sortKey = 'savedAt';
 let sortAsc = false;
 
 async function loadLinks() {
@@ -1300,23 +1476,29 @@ async function loadOverlap() {
   const data = await res.json();
 
   renderUserProfiles(data);
-  renderHeatmap(data);
+  renderOverlapPairs(data);
   renderSharedCategories(data);
 }
 
 function renderUserProfiles(data) {
   const container = document.getElementById('user-profiles');
-  container.innerHTML = data.users.map((u, i) => {
+  const minorContainer = document.getElementById('user-profiles-minor');
+
+  // Sort users by link count descending, split into top 5 and the rest
+  const sorted = [...data.users].sort((a, b) => b.linkCount - a.linkCount);
+  const topUsers = sorted.slice(0, 5);
+  const minorUsers = sorted.slice(5);
+
+  // Render full cards for top users
+  container.innerHTML = topUsers.map((u) => {
+    const idx = data.users.indexOf(u);
     const stats = data.userStats[u.discordId] || {};
-    const color = USER_COLORS[i % USER_COLORS.length];
-    const typeBadges = (stats.topTypes || []).map(t =>
+    const color = USER_COLORS[idx % USER_COLORS.length];
+    const typeBadges = (stats.topTypes || []).slice(0, 4).map(t =>
       `<span class="badge badge-${t.type}">${t.type} ${t.count}</span>`
     ).join(' ');
-    const tagPills = (stats.topTags || []).slice(0, 8).map(t =>
+    const tagPills = (stats.topTags || []).slice(0, 6).map(t =>
       `<span class="tag-pill">${escapeHtml(t.tag)}<span class="tag-count">${t.count}</span></span>`
-    ).join('');
-    const toolPills = (stats.topTools || []).slice(0, 6).map(t =>
-      `<span class="tag-pill">${escapeHtml(t.tool)}<span class="tag-count">${t.count}</span></span>`
     ).join('');
 
     return `
@@ -1337,56 +1519,94 @@ function renderUserProfiles(data) {
         <div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Types</div>
         <div style="margin-top:4px">${typeBadges}</div>
         ${tagPills ? `<div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Top Tags</div><div class="tag-cloud">${tagPills}</div>` : ''}
-        ${toolPills ? `<div style="margin-top:10px;font-size:11px;color:#6d7078;text-transform:uppercase;letter-spacing:0.3px">Top Tools</div><div class="tag-cloud">${toolPills}</div>` : ''}
       </div>
     `;
   }).join('');
-}
 
-function renderHeatmap(data) {
-  const container = document.getElementById('heatmap');
-  const users = data.users;
-
-  if (users.length < 2) {
-    container.innerHTML = '<div style="color:#8e9297;font-size:13px;padding:20px">Need 2+ users for overlap heatmap</div>';
+  // Render compact rows for minor users
+  if (minorUsers.length === 0) {
+    minorContainer.innerHTML = '';
     return;
   }
 
-  const pairKey = (a, b) => [a, b].sort().join('|');
-  const pairMap = {};
-  for (const p of data.pairwise) {
-    pairMap[pairKey(p.userA, p.userB)] = p;
+  const minorRows = minorUsers.map((u) => {
+    const idx = data.users.indexOf(u);
+    const stats = data.userStats[u.discordId] || {};
+    const color = USER_COLORS[idx % USER_COLORS.length];
+    const typeBadges = (stats.topTypes || []).slice(0, 3).map(t =>
+      `<span class="badge badge-${t.type}" style="font-size:9px;padding:2px 5px">${t.type} ${t.count}</span>`
+    ).join(' ');
+
+    return `
+      <div class="minor-user-row">
+        <div class="minor-user-avatar" style="background:${color}">${escapeHtml(u.displayName.charAt(0).toUpperCase())}</div>
+        <span class="minor-user-name">${escapeHtml(u.displayName)}</span>
+        <span class="minor-user-stat"><strong>${u.linkCount}</strong> links</span>
+        <span class="minor-user-stat"><strong>${stats.totalCategories || 0}</strong> cats</span>
+        <span class="minor-user-stat">avg <strong>${stats.avgScore || 0}</strong></span>
+        <div class="minor-user-types">${typeBadges}</div>
+      </div>
+    `;
+  }).join('');
+
+  minorContainer.innerHTML = `
+    <div class="minor-users-header" onclick="this.querySelector('.chevron').classList.toggle('open'); this.nextElementSibling.classList.toggle('open')">
+      <span class="chevron">▶</span> ${minorUsers.length} more users
+    </div>
+    <div class="minor-user-list">${minorRows}</div>
+  `;
+}
+
+function renderOverlapPairs(data) {
+  const container = document.getElementById('overlap-pairs');
+  const users = data.users;
+  const userMap = {};
+  users.forEach((u, i) => { userMap[u.discordId] = { ...u, idx: i }; });
+
+  if (users.length < 2 || data.pairwise.length === 0) {
+    container.innerHTML = '<div style="color:#8e9297;font-size:13px;padding:10px">Need 2+ users with shared categories</div>';
+    return;
   }
 
-  const maxShared = Math.max(1, ...data.pairwise.map(p => p.sharedCategories));
+  // Sort pairs by shared categories descending, take top 8
+  const topPairs = [...data.pairwise]
+    .filter(p => p.sharedCategories > 0)
+    .sort((a, b) => b.sharedCategories - a.sharedCategories)
+    .slice(0, 8);
 
-  let html = '<table class="heatmap-table"><thead><tr><th></th>';
-  for (const u of users) {
-    html += `<th>${escapeHtml(u.displayName)}</th>`;
-  }
-  html += '</tr></thead><tbody>';
-
-  for (let i = 0; i < users.length; i++) {
-    html += `<tr><th>${escapeHtml(users[i].displayName)}</th>`;
-    for (let j = 0; j < users.length; j++) {
-      if (i === j) {
-        const stats = data.userStats[users[i].discordId] || {};
-        html += `<td><div class="heatmap-cell self"><span class="hm-val">${stats.totalCategories || 0}</span><span class="hm-label">total</span></div></td>`;
-      } else {
-        const pair = pairMap[pairKey(users[i].discordId, users[j].discordId)];
-        const shared = pair ? pair.sharedCategories : 0;
-        const jaccard = pair ? pair.jaccard : 0;
-        const intensity = shared / maxShared;
-        const bg = `rgba(88, 101, 242, ${0.15 + intensity * 0.75})`;
-        html += `<td><div class="heatmap-cell" style="background:${bg}" title="${shared} shared categories (Jaccard: ${jaccard})"><span class="hm-val">${shared}</span><span class="hm-label">J=${jaccard}</span></div></td>`;
-      }
-    }
-    html += '</tr>';
+  if (topPairs.length === 0) {
+    container.innerHTML = '<div style="color:#8e9297;font-size:13px;padding:10px">No overlap between users yet</div>';
+    return;
   }
 
-  html += '</tbody></table>';
-  html += '<div class="heatmap-legend"><span>Low overlap</span><div class="lg-bar"></div><span>High overlap</span></div>';
-  container.innerHTML = html;
+  const maxShared = topPairs[0].sharedCategories;
+
+  container.innerHTML = topPairs.map(p => {
+    const uA = userMap[p.userA] || { displayName: '?', idx: 0 };
+    const uB = userMap[p.userB] || { displayName: '?', idx: 1 };
+    const colA = USER_COLORS[uA.idx % USER_COLORS.length];
+    const colB = USER_COLORS[uB.idx % USER_COLORS.length];
+    const barPct = Math.round((p.sharedCategories / maxShared) * 100);
+
+    return `
+      <div class="overlap-pair">
+        <div class="overlap-pair-users">
+          <div class="overlap-pair-avatar" style="background:${colA}">${escapeHtml(uA.displayName.charAt(0).toUpperCase())}</div>
+          <span style="font-size:13px;color:#dbdee1">${escapeHtml(uA.displayName)}</span>
+          <span class="overlap-pair-amp">&amp;</span>
+          <div class="overlap-pair-avatar" style="background:${colB}">${escapeHtml(uB.displayName.charAt(0).toUpperCase())}</div>
+          <span style="font-size:13px;color:#dbdee1">${escapeHtml(uB.displayName)}</span>
+        </div>
+        <div class="overlap-pair-bar-wrap">
+          <div class="overlap-pair-bar" style="width:${barPct}%"></div>
+        </div>
+        <div class="overlap-pair-stats">
+          <span><strong>${p.sharedCategories}</strong> shared</span>
+          <span>J=<strong>${p.jaccard}</strong></span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderSharedCategories(data) {

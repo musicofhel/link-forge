@@ -7,7 +7,7 @@
  */
 import { loadConfig } from "../src/config/index.js";
 import { createLogger } from "../src/config/logger.js";
-import { createGraphClient } from "../src/graph/client.js";
+import { createFailoverClient } from "../src/graph/client.js";
 import { createEmbeddingService } from "../src/embeddings/index.js";
 import { categorizeWithClaude } from "../src/processor/claude-cli.js";
 import neo4j from "neo4j-driver";
@@ -26,9 +26,8 @@ async function main() {
 
   logger.info({ batchSize, skip, limit, dryRun }, "Starting URL reprocessing");
 
-  const graphClient = await createGraphClient(
-    config.neo4j.uri, config.neo4j.user, config.neo4j.password, logger,
-  );
+  const graphClient = createFailoverClient();
+  await graphClient.connect();
 
   const embeddings = await createEmbeddingService(logger);
 

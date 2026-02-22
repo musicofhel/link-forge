@@ -6,8 +6,7 @@
  *        npx tsx scripts/set-interests.ts "aaron" "AI, crypto, CBDC, psychology, ecommerce, advanced forecasting, stock market"
  */
 import { loadConfig } from "../src/config/index.js";
-import { createLogger } from "../src/config/logger.js";
-import { createGraphClient } from "../src/graph/client.js";
+import { createFailoverClient } from "../src/graph/client.js";
 
 async function main() {
   const name = process.argv[2];
@@ -21,11 +20,9 @@ async function main() {
 
   const interests = interestsRaw.split(",").map(t => t.trim()).filter(t => t.length > 0);
 
-  const config = loadConfig();
-  const logger = createLogger("info", "set-interests");
-  const graphClient = await createGraphClient(
-    config.neo4j.uri, config.neo4j.user, config.neo4j.password, logger,
-  );
+  loadConfig(); // loads .env
+  const graphClient = createFailoverClient();
+  await graphClient.connect();
 
   const session = graphClient.session();
   try {

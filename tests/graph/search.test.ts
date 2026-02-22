@@ -173,7 +173,7 @@ describe("hybridSearch", () => {
     expect(results).toHaveLength(0);
   });
 
-  it("runs vector and keyword searches in parallel", async () => {
+  it("runs vector and keyword searches sequentially on the same session", async () => {
     const callOrder: string[] = [];
 
     const session = {
@@ -199,9 +199,8 @@ describe("hybridSearch", () => {
 
     await hybridSearch(session, "test", new Array(384).fill(0));
 
-    // Both should start before either finishes (parallel execution)
-    expect(callOrder[0]).toContain("start");
-    expect(callOrder[1]).toContain("start");
+    // Sequential: vector completes before keyword starts (avoids concurrent transactions)
+    expect(callOrder).toEqual(["vector-start", "vector-end", "keyword-start", "keyword-end"]);
   });
 
   it("preserves keyword matchType for keyword-only results", async () => {
