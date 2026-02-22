@@ -112,24 +112,24 @@
     .drawer-header .arrow { width: 12px; height: 12px; color: #6d7078; transition: transform 0.2s; flex-shrink: 0; }
     .drawer-header.collapsed .arrow { transform: rotate(-90deg); }
     .drawer-header h3 {
-      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
       color: #8e9297; font-weight: 600; flex: 1; margin: 0;
     }
     .drawer-header .badge {
-      font-size: 10px; padding: 1px 6px; border-radius: 8px; min-width: 18px; text-align: center;
+      font-size: 11px; padding: 2px 7px; border-radius: 8px; min-width: 20px; text-align: center;
       background: #5865f2; color: #fff; font-weight: 600; display: none;
     }
     .drawer-header .badge.visible { display: inline-block; }
     .drawer-body { padding: 4px 12px 12px; }
     .drawer-body.collapsed { display: none; }
     .drawer-group { margin-bottom: 10px; }
-    .drawer-group-label { font-size: 10px; color: #6d7078; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .drawer-group-label { font-size: 12px; color: #6d7078; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
 
     /* Presets bar */
     .presets-bar { display: flex; gap: 6px; padding: 10px 14px 6px; overflow-x: auto; flex-shrink: 0; }
     .presets-bar::-webkit-scrollbar { height: 3px; }
     .preset-chip {
-      padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 600;
+      padding: 6px 14px; border-radius: 14px; font-size: 14px; font-weight: 600;
       background: #383a40; color: #b5bac1; border: 1px solid transparent;
       cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
     }
@@ -140,8 +140,8 @@
 
     /* Shared form elements */
     .filter-check {
-      display: flex; align-items: center; gap: 8px; padding: 3px 0;
-      cursor: pointer; font-size: 12px; user-select: none;
+      display: flex; align-items: center; gap: 8px; padding: 4px 0;
+      cursor: pointer; font-size: 14px; user-select: none;
     }
     .filter-check input { display: none; }
     .filter-check .box {
@@ -155,14 +155,14 @@
       transform: rotate(-45deg) translateY(-1px);
     }
     .filter-check .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .filter-check .count { font-size: 10px; color: #6d7078; margin-left: auto; }
+    .filter-check .count { font-size: 12px; color: #6d7078; margin-left: auto; }
     .filter-range { width: 100%; margin: 2px 0; accent-color: #5865f2; height: 18px; }
-    .filter-range-label { font-size: 11px; color: #8e9297; display: flex; justify-content: space-between; }
+    .filter-range-label { font-size: 13px; color: #8e9297; display: flex; justify-content: space-between; }
 
     /* Chip grid */
     .chip-grid { display: flex; flex-wrap: wrap; gap: 4px; }
     .chip {
-      padding: 3px 10px; border-radius: 12px; font-size: 11px;
+      padding: 5px 12px; border-radius: 12px; font-size: 14px;
       background: #383a40; color: #8e9297; cursor: pointer;
       border: 1px solid transparent; transition: all 0.15s; user-select: none;
     }
@@ -172,7 +172,7 @@
     /* Toggle group */
     .toggle-group { display: flex; gap: 4px; flex-wrap: wrap; }
     .toggle-btn {
-      padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 500;
+      padding: 5px 12px; border-radius: 6px; font-size: 14px; font-weight: 500;
       background: #383a40; color: #8e9297; cursor: pointer;
       border: 1px solid transparent; transition: all 0.15s; user-select: none;
     }
@@ -181,24 +181,24 @@
 
     /* Domain/User chips */
     .searchable-chips { max-height: 120px; overflow-y: auto; }
-    .chip-search { width: 100%; padding: 4px 8px; margin-bottom: 4px; background: #1a1b1e; border: 1px solid #3f4147; border-radius: 4px; color: #dbdee1; font-size: 11px; outline: none; }
+    .chip-search { width: 100%; padding: 6px 10px; margin-bottom: 4px; background: #1a1b1e; border: 1px solid #3f4147; border-radius: 4px; color: #dbdee1; font-size: 14px; outline: none; }
     .chip-search:focus { border-color: #5865f2; }
     .user-chip { display: inline-flex; align-items: center; gap: 4px; }
     .user-chip .avatar { width: 14px; height: 14px; border-radius: 50%; background: #383a40; }
     .date-inputs { display: flex; gap: 6px; }
-    .date-input { flex: 1; padding: 4px 6px; background: #1a1b1e; border: 1px solid #3f4147; border-radius: 4px; color: #dbdee1; font-size: 11px; outline: none; }
+    .date-input { flex: 1; padding: 6px 8px; background: #1a1b1e; border: 1px solid #3f4147; border-radius: 4px; color: #dbdee1; font-size: 14px; outline: none; }
     .date-input:focus { border-color: #5865f2; }
 
     /* Select dropdown */
     .drawer-select {
-      width: 100%; padding: 5px 8px; background: #1a1b1e; border: 1px solid #3f4147;
-      border-radius: 6px; color: #dbdee1; font-size: 12px; outline: none; cursor: pointer;
+      width: 100%; padding: 7px 10px; background: #1a1b1e; border: 1px solid #3f4147;
+      border-radius: 6px; color: #dbdee1; font-size: 14px; outline: none; cursor: pointer;
     }
     .drawer-select:focus { border-color: #5865f2; }
 
     /* Tool section */
     .tool-row { display: flex; gap: 6px; margin-bottom: 6px; }
-    .tool-input { flex: 1; padding: 5px 8px; background: #1a1b1e; border: 1px solid #3f4147; border-radius: 6px; color: #dbdee1; font-size: 12px; outline: none; }
+    .tool-input { flex: 1; padding: 7px 10px; background: #1a1b1e; border: 1px solid #3f4147; border-radius: 6px; color: #dbdee1; font-size: 14px; outline: none; }
     .tool-input:focus { border-color: #5865f2; }
     .tool-input::placeholder { color: #6d7078; }
     .tool-autocomplete { position: relative; flex: 1; }
@@ -207,20 +207,20 @@
       border-radius: 6px; max-height: 150px; overflow-y: auto; display: none; z-index: 10;
     }
     .tool-autocomplete .tool-dropdown.open { display: block; }
-    .tool-dropdown-item { padding: 4px 8px; font-size: 12px; cursor: pointer; }
+    .tool-dropdown-item { padding: 5px 10px; font-size: 14px; cursor: pointer; }
     .tool-dropdown-item:hover { background: #383a40; }
-    .path-result { padding: 6px 8px; background: #383a40; border-radius: 6px; font-size: 11px; color: #b5bac1; display: none; margin-top: 4px; }
+    .path-result { padding: 8px 10px; background: #383a40; border-radius: 6px; font-size: 13px; color: #b5bac1; display: none; margin-top: 4px; }
     .path-result.visible { display: block; }
     .cluster-list { max-height: 100px; overflow-y: auto; margin-top: 4px; }
-    .cluster-item { padding: 3px 6px; font-size: 11px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 6px; }
+    .cluster-item { padding: 5px 8px; font-size: 13px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 6px; }
     .cluster-item:hover { background: #383a40; }
     .cluster-item .cdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .export-row { display: flex; gap: 6px; }
 
     /* Drawer buttons */
     .drawer-btn {
-      padding: 5px 12px; border-radius: 6px; border: 1px solid #3f4147;
-      background: #383a40; color: #dbdee1; font-size: 11px; cursor: pointer; transition: all 0.15s;
+      padding: 7px 14px; border-radius: 6px; border: 1px solid #3f4147;
+      background: #383a40; color: #dbdee1; font-size: 13px; cursor: pointer; transition: all 0.15s;
     }
     .drawer-btn:hover { background: #4f5258; }
     .drawer-btn.primary { background: #5865f2; border-color: #5865f2; color: #fff; }
@@ -229,9 +229,9 @@
     .drawer-btn.danger:hover { background: #ed424544; }
     .drawer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .layout-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .layout-row label { font-size: 11px; color: #8e9297; width: 70px; flex-shrink: 0; }
+    .layout-row label { font-size: 13px; color: #8e9297; width: 75px; flex-shrink: 0; }
     .layout-row input[type=range] { flex: 1; accent-color: #5865f2; height: 16px; }
-    .layout-row .val { font-size: 10px; color: #6d7078; width: 32px; text-align: right; }
+    .layout-row .val { font-size: 12px; color: #6d7078; width: 36px; text-align: right; }
     .layout-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 
     /* Active filters bar */
@@ -244,12 +244,12 @@
     .active-filters-bar.visible { display: flex; }
     .active-chip {
       display: inline-flex; align-items: center; gap: 4px;
-      padding: 2px 8px; border-radius: 10px; font-size: 10px;
+      padding: 3px 10px; border-radius: 10px; font-size: 12px;
       background: #5865f222; color: #8e9cc8; border: 1px solid #5865f244;
     }
     .active-chip .x { cursor: pointer; color: #6d7078; font-weight: 700; margin-left: 2px; }
     .active-chip .x:hover { color: #ed4245; }
-    .clear-all-btn { font-size: 10px; color: #ed4245; cursor: pointer; margin-left: auto; font-weight: 600; }
+    .clear-all-btn { font-size: 12px; color: #ed4245; cursor: pointer; margin-left: auto; font-weight: 600; }
     .clear-all-btn:hover { text-decoration: underline; }
 
     /* Toolbar filter button */
@@ -449,7 +449,7 @@
             <div class="drawer-group-label">Forge Score</div>
             <div style="display:flex;gap:6px;align-items:center">
               <input type="range" class="filter-range" id="filter-score-min" min="0" max="1" step="0.05" value="0" style="flex:1">
-              <span style="color:#6d7078;font-size:10px">to</span>
+              <span style="color:#6d7078;font-size:13px">to</span>
               <input type="range" class="filter-range" id="filter-score-max" min="0" max="1" step="0.05" value="1" style="flex:1">
             </div>
             <div class="filter-range-label"><span id="filter-score-min-val">0.00</span><span id="filter-score-max-val">1.00</span></div>
@@ -498,7 +498,7 @@
           </div>
           <div class="drawer-group" style="margin-top:4px">
             <details>
-              <summary style="font-size:10px;color:#6d7078;cursor:pointer;user-select:none;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Edge Types</summary>
+              <summary style="font-size:12px;color:#6d7078;cursor:pointer;user-select:none;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Edge Types</summary>
               <div style="margin-top:6px">
                 <label class="filter-check"><input type="checkbox" checked data-edge="LINKS_TO"><span class="box"></span> LINKS_TO</label>
                 <label class="filter-check"><input type="checkbox" checked data-edge="CATEGORIZED_IN"><span class="box"></span> CATEGORIZED_IN</label>
