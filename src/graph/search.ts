@@ -1,4 +1,4 @@
-import type { Session } from "neo4j-driver";
+import neo4j, { type Session } from "neo4j-driver";
 import type { LinkNode, SearchResult } from "./types.js";
 
 async function vectorSearch(
@@ -10,7 +10,7 @@ async function vectorSearch(
     `CALL db.index.vector.queryNodes('link_embedding_idx', $limit, $embedding)
      YIELD node, score
      RETURN node, score`,
-    { limit, embedding },
+    { limit: neo4j.int(limit), embedding },
   );
 
   return result.records.map((record) => ({
@@ -32,7 +32,7 @@ async function keywordSearch(
      OPTIONAL MATCH (l)-[:TAGGED_WITH]->(t:Tag)
      RETURN l, c.name AS categoryName, collect(t.name) AS tags
      LIMIT $limit`,
-    { query, limit },
+    { query, limit: neo4j.int(limit) },
   );
 
   return result.records.map((record) => ({
@@ -50,10 +50,11 @@ export async function hybridSearch(
   embedding: number[],
   limit = 10,
 ): Promise<SearchResult[]> {
-  const [vectorResults, keywordResults] = await Promise.all([
-    vectorSearch(session, embedding, limit),
-    keywordSearch(session, query, limit),
-  ]);
+  // Ensure limit is a proper integer (MCP SDK may pass JS floats)
+  const intLimit = Math.round(limit);
+  // Run sequentially to avoid concurrent transactions on the same session
+  const vectorResults = await vectorSearch(session, embedding, intLimit);
+  const keywordResults = await keywordSearch(session, query, intLimit);
 
   // Merge and deduplicate by URL
   const mergedMap = new Map<string, SearchResult>();

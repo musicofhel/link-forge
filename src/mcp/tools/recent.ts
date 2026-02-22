@@ -1,4 +1,4 @@
-import type { Driver } from "neo4j-driver";
+import neo4j, { type Driver } from "neo4j-driver";
 
 export const forgeRecentTool = {
   name: "forge_recent",
@@ -20,7 +20,7 @@ export async function handleForgeRecent(
   args: { limit?: number },
   driver: Driver,
 ): Promise<string> {
-  const limit = Math.min(args.limit ?? 10, 50);
+  const limit = neo4j.int(Math.round(Math.min(args.limit ?? 10, 50)));
   const session = driver.session();
   try {
     const result = await session.run(

@@ -1,4 +1,4 @@
-import type { Driver } from "neo4j-driver";
+import neo4j, { type Driver } from "neo4j-driver";
 import { listCategoryTree } from "../../graph/repositories/category.repository.js";
 import { findToolsByTechnology, listTools } from "../../graph/repositories/tool.repository.js";
 
@@ -229,6 +229,6 @@ export async function handleForgeRelated(
 }
 
 function neo4jInt(n: number) {
-  // neo4j driver expects integers for LIMIT
-  return n;
+  // neo4j driver expects integers for LIMIT; MCP SDK may pass floats
+  return neo4j.int(Math.round(n));
 }
