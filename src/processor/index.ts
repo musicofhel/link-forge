@@ -36,6 +36,7 @@ export interface ProcessorOptions {
   pollIntervalMs: number;
   scrapeTimeoutMs: number;
   claudeTimeoutMs: number;
+  workers?: number;
 }
 
 export interface Processor {
@@ -52,17 +53,23 @@ export function createProcessor(
   logger: pino.Logger,
 ): Processor {
   let timer: ReturnType<typeof setInterval> | null = null;
-  let processing = false;
+  let stopped = false;
+  const workerCount = options.workers ?? 1;
+
+  // Track active workers so poll doesn't overlap
+  let activeWorkers = 0;
 
   // Reset stale items on startup (older than 5 minutes)
   resetStale(queueClient.db, 5 * 60 * 1000);
   logger.info("Reset stale queue items");
 
-  async function processOne(): Promise<boolean> {
+  const WOBBLYCHAIR_CHANNEL = "1432502241876770816";
+
+  async function processOne(workerId: number): Promise<boolean> {
     const item = dequeue(queueClient.db);
     if (!item) return false;
 
-    const log = logger.child({ queueId: item.id, url: item.url });
+    const log = logger.child({ queueId: item.id, url: item.url, worker: workerId });
     log.info("Processing link");
 
     const session = neo4jDriver.session();
@@ -242,13 +249,13 @@ export function createProcessor(
         }
       }
 
-      // Notify Discord (skip for auto-discovered links, backfills, and gdrive items)
+      // Notify Discord — only in wobblychair channel, skip synthetic IDs
       const isSynthetic =
         item.discord_message_id.startsWith("auto:") ||
         item.discord_message_id.startsWith("backfill:") ||
         item.discord_message_id.startsWith("gdrive:") ||
         item.discord_message_id.startsWith("inbox:");
-      if (notifier && !isSynthetic) {
+      if (notifier && !isSynthetic && item.discord_channel_id === WOBBLYCHAIR_CHANNEL) {
         await notifier.notifySuccess(item.discord_channel_id, item.discord_message_id);
       }
 
@@ -263,7 +270,7 @@ export function createProcessor(
         item.discord_message_id.startsWith("backfill:") ||
         item.discord_message_id.startsWith("gdrive:") ||
         item.discord_message_id.startsWith("inbox:");
-      if (notifier && !isSyntheticErr) {
+      if (notifier && !isSyntheticErr && item.discord_channel_id === WOBBLYCHAIR_CHANNEL) {
         await notifier.notifyFailure(item.discord_channel_id, item.discord_message_id);
       }
 
@@ -273,38 +280,48 @@ export function createProcessor(
     }
   }
 
-  async function poll() {
-    if (processing) return;
-    processing = true;
+  async function runWorker(workerId: number) {
+    const wlog = logger.child({ worker: workerId });
+    wlog.debug("Worker started");
+    activeWorkers++;
     try {
-      // Process all available items in this poll cycle
-      while (await processOne()) {
-        // Keep processing until queue is empty
+      while (!stopped) {
+        const hadItem = await processOne(workerId);
+        if (!hadItem) {
+          // Queue empty — wait before checking again
+          await new Promise((r) => setTimeout(r, options.pollIntervalMs));
+        }
       }
     } catch (err) {
-      logger.error({ err }, "Processor poll error");
+      wlog.error({ err }, "Worker crashed, restarting in 5s");
+      if (!stopped) {
+        await new Promise((r) => setTimeout(r, 5000));
+        if (!stopped) void runWorker(workerId);
+      }
     } finally {
-      processing = false;
+      activeWorkers--;
     }
   }
 
   return {
     start() {
+      stopped = false;
       logger.info(
-        { pollIntervalMs: options.pollIntervalMs },
+        { pollIntervalMs: options.pollIntervalMs, workers: workerCount },
         "Starting processor",
       );
-      timer = setInterval(() => void poll(), options.pollIntervalMs);
-      // Also run immediately
-      void poll();
+      for (let i = 0; i < workerCount; i++) {
+        void runWorker(i);
+      }
     },
 
     stop() {
+      stopped = true;
       if (timer) {
         clearInterval(timer);
         timer = null;
       }
-      logger.info("Processor stopped");
+      logger.info({ activeWorkers }, "Processor stopping");
     },
   };
 }
