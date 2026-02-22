@@ -1,5 +1,4 @@
 import {
-  ChannelType,
   Client,
   GatewayIntentBits,
   REST,
@@ -302,12 +301,8 @@ export function createBot(
     // Guild-wide: scrape all channels (ignore DMs)
     if (!message.guild) return;
 
-    // Only react with emojis in channels under the "corners" category
-    const parentChannel = message.channel.isThread()
-      ? message.channel.parent?.parent
-      : "parent" in message.channel ? message.channel.parent : null;
-    const useReactions = parentChannel?.type === ChannelType.GuildCategory
-      && parentChannel.name.toLowerCase() === "corners";
+    // Only react with emojis in the wobblychair channel
+    const useReactions = message.channelId === "1432502241876770816";
 
     // --- Handle URLs ---
     const extracted = extractUrls(message.content);
