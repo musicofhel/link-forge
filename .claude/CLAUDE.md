@@ -90,6 +90,27 @@ npm run typecheck    # tsc --noEmit
 - `forge_related` — Find related links (graph + vector)
 - `forge_recent` — Get N most recent additions
 
+## Bot Behavior
+
+- **Guild-wide scraping**: The bot captures links and attachments from ALL channels in the server
+- **Emoji reactions only in #wobblychair** (channel ID `1432502241876770816`): Both the `messageCreate` handler and the processor notifier are gated to this channel. All other channels are scraped silently.
+- **Academic DOI fallback**: When a DOI URL returns 403, the scraper tries Unpaywall (OA full-text PDF) then Semantic Scholar (title/abstract/authors/citations)
+
+## CRITICAL: Restarting the Bot
+
+**ALWAYS kill ALL existing bot processes before starting a new one.** The bot runs via `npx tsx src/index.ts` which spawns multiple child processes. Using `kill <pid>` on just the parent may leave orphans. Stacked instances cause duplicate processing and unwanted side effects (e.g., old instances ignoring channel restrictions).
+
+```bash
+# CORRECT — kill everything, then start fresh
+pkill -f "tsx src/index.ts"; sleep 2
+nohup npx tsx src/index.ts >> logs/bot.log 2>&1 &
+
+# VERIFY only one instance is running
+pgrep -f "tsx src/index.ts" -a | grep -v pgrep
+```
+
+Never use just `kill <single-pid>` — always use `pkill -f "tsx src/index.ts"` to catch all child processes.
+
 ## Conventions
 
 - All source in `src/`, tests mirror in `tests/`
