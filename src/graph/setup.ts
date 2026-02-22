@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { createGraphClient } from "./client.js";
+import { createFailoverClient } from "./client.js";
 import { setupSchema } from "./schema.js";
 import { createLogger } from "../config/logger.js";
 
@@ -8,11 +8,8 @@ dotenv.config();
 const logger = createLogger(process.env["LOG_LEVEL"] ?? "info", "graph-setup");
 
 async function main(): Promise<void> {
-  const uri = process.env["NEO4J_URI"] ?? "bolt://localhost:7687";
-  const user = process.env["NEO4J_USER"] ?? "neo4j";
-  const password = process.env["NEO4J_PASSWORD"] ?? "link_forge_dev";
-
-  const client = await createGraphClient(uri, user, password, logger);
+  const client = createFailoverClient();
+  await client.connect();
   const session = client.session();
 
   try {

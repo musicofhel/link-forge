@@ -3,7 +3,7 @@ import { loadConfig } from "./config/index.js";
 import { createLogger } from "./config/logger.js";
 import { QueueClient } from "./queue/index.js";
 import { createBot } from "./bot/index.js";
-import { createGraphClient } from "./graph/client.js";
+import { createFailoverClient } from "./graph/client.js";
 import { setupSchema } from "./graph/schema.js";
 import { createEmbeddingService } from "./embeddings/index.js";
 import { createProcessor } from "./processor/index.js";
@@ -14,6 +14,7 @@ import { createGDriveWatcher } from "./gdrive/watcher.js";
 import type { GDriveWatcher } from "./gdrive/watcher.js";
 import { createInboxWatcher } from "./inbox/watcher.js";
 import type { InboxWatcher } from "./inbox/watcher.js";
+import { initSync, startSyncDaemon, stopSyncDaemon } from "./sync/index.js";
 
 async function main() {
   const config = loadConfig();
@@ -21,14 +22,11 @@ async function main() {
 
   logger.info("Starting Link Forge...");
 
-  // 1. Connect to Neo4j
+  // 1. Connect to Neo4j (with failover support)
   logger.info("Connecting to Neo4j...");
-  const graphClient = await createGraphClient(
-    config.neo4j.uri,
-    config.neo4j.user,
-    config.neo4j.password,
-    logger,
-  );
+  const graphClient = createFailoverClient();
+  await graphClient.connect();
+  logger.info("Neo4j connected");
 
   // 2. Setup Neo4j schema
   const session = graphClient.session();
@@ -36,6 +34,13 @@ async function main() {
     await setupSchema(session, logger);
   } finally {
     await session.close();
+  }
+
+  // 2b. Initialize sync (if enabled)
+  const syncCtx = await initSync(graphClient.getLocalDriver());
+  if (syncCtx) {
+    startSyncDaemon(syncCtx);
+    logger.info("Sync daemon started");
   }
 
   // 3. Load embedding model
@@ -67,17 +72,21 @@ async function main() {
   }
 
   // 7. Start Discord bot (with slash command deps)
+  let notifier: ReturnType<typeof createDiscordNotifier> | null = null;
   const bot = createBot(config.discord, queueClient, logger, {
     neo4jDriver: graphClient.driver,
     embeddings,
     dashboardPort,
     dashboardUrl,
   });
-  await bot.login();
-  logger.info("Discord bot connected");
 
-  // 6. Create notifier
-  const notifier = createDiscordNotifier(bot.client, logger);
+  if (process.env.DISCORD_BOT_ENABLED === "false") {
+    logger.info("Discord bot disabled on this node (DISCORD_BOT_ENABLED=false)");
+  } else {
+    await bot.login();
+    logger.info("Discord bot connected");
+    notifier = createDiscordNotifier(bot.client, logger);
+  }
 
   // 7. Start processor
   const processor = createProcessor(
@@ -89,6 +98,7 @@ async function main() {
       pollIntervalMs: config.processor.pollIntervalMs,
       scrapeTimeoutMs: config.processor.scrapeTimeoutMs,
       claudeTimeoutMs: config.processor.claudeTimeoutMs,
+      workers: config.processor.workers,
     },
     logger,
   );
@@ -150,9 +160,12 @@ async function main() {
     inboxWatcher?.stop();
     driveWatcher?.stop();
     dashboard.stop();
+    stopSyncDaemon();
 
-    await bot.destroy();
-    logger.info("Discord bot disconnected");
+    if (process.env.DISCORD_BOT_ENABLED !== "false") {
+      await bot.destroy();
+      logger.info("Discord bot disconnected");
+    }
 
     queueClient.close();
     logger.info("SQLite closed");
