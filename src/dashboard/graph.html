@@ -419,6 +419,11 @@
     <div class="sep"></div>
     <div class="stat-pill" id="stat-nodes">Nodes: <span>0</span></div>
     <div class="stat-pill" id="stat-edges">Edges: <span>0</span></div>
+    <div class="sep"></div>
+    <button class="filter-btn" id="refresh-graph-btn" title="Reset graph to default view">
+      <svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      Reset
+    </button>
   </div>
 
   <!-- Explorer Drawer -->
@@ -1085,6 +1090,33 @@ document.getElementById('filter-toggle').addEventListener('click', () => {
     window.addEventListener('mouseup', onUp);
   });
 })();
+
+// Reset graph button
+document.getElementById('refresh-graph-btn').addEventListener('click', async () => {
+  if (isLocalMode) exitLocalMode();
+  resetFilters(true);
+  // Clear clusters & path
+  clusterActive = false; clusterMap.clear();
+  document.getElementById('clear-clusters-btn').style.display = 'none';
+  document.getElementById('cluster-list').innerHTML = '';
+  pathHighlight = null;
+  document.getElementById('path-result').classList.remove('visible');
+  // Reset visual controls to defaults
+  colorByMode = 'score'; document.getElementById('color-by').value = 'score';
+  sizeByMode = 'both'; document.getElementById('size-by').value = 'both';
+  labelMode = 'auto'; document.getElementById('label-mode').value = 'auto';
+  baseEdgeOpacity = 0.12; document.getElementById('edge-opacity').value = 0.12; document.getElementById('edge-opacity-val').textContent = '12%';
+  manualLayout = false;
+  // Unpin all nodes
+  for (const n of allNodes) { n.fx = null; n.fy = null; }
+  // Close panels
+  document.getElementById('detail-panel').classList.remove('open');
+  selectedNode = null;
+  // Re-apply and zoom to fit
+  buildLegend();
+  applyFilters();
+  setTimeout(() => zoomToFit(), 300);
+});
 
 // Detail panel close
 document.getElementById('detail-close').addEventListener('click', () => {
