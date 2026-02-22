@@ -28,7 +28,7 @@ import { askQuestion } from "../rag/query.js";
 
 export interface BotConfig {
   token: string;
-  channelId: string;
+  channelId?: string; // Optional — only used for taxonomy split notifications
   guildId: string;
 }
 
@@ -298,8 +298,8 @@ export function createBot(
     // Ignore bots
     if (message.author.bot) return;
 
-    // Ignore messages not in the configured channel
-    if (message.channelId !== config.channelId) return;
+    // Guild-wide: scrape all channels (ignore DMs)
+    if (!message.guild) return;
 
     // --- Handle URLs ---
     const extracted = extractUrls(message.content);

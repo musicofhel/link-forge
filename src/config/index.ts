@@ -6,7 +6,7 @@ dotenv.config();
 const configSchema = z.object({
   discord: z.object({
     token: z.string().min(1, "DISCORD_TOKEN is required"),
-    channelId: z.string().min(1, "DISCORD_CHANNEL_ID is required"),
+    channelId: z.string().default(""),
     guildId: z.string().min(1, "DISCORD_GUILD_ID is required"),
   }),
   neo4j: z.object({
@@ -21,6 +21,7 @@ const configSchema = z.object({
     pollIntervalMs: z.coerce.number().positive().default(5000),
     scrapeTimeoutMs: z.coerce.number().positive().default(15000),
     claudeTimeoutMs: z.coerce.number().positive().default(60000),
+    workers: z.coerce.number().int().positive().default(1),
   }),
   taxonomy: z.object({
     checkIntervalMs: z.coerce.number().positive().default(3600000),
@@ -65,6 +66,7 @@ function buildRawConfig(): Record<string, unknown> {
       pollIntervalMs: process.env["PROCESSOR_POLL_INTERVAL_MS"],
       scrapeTimeoutMs: process.env["SCRAPE_TIMEOUT_MS"],
       claudeTimeoutMs: process.env["CLAUDE_TIMEOUT_MS"],
+      workers: process.env["PROCESSOR_WORKERS"],
     },
     taxonomy: {
       checkIntervalMs: process.env["TAXONOMY_CHECK_INTERVAL_MS"],
